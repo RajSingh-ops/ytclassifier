@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{base :: head('YT-Classifier | Automated Video Credibility Audits')}"></head>
+<body>
+
+    
+    <div th:replace="~{base :: landing-background}"></div>
+
+    <div class="container">
+        
+        
+        <header th:replace="~{base :: landing-navbar}"></header>
+
+        <main class="hero-deck">
+            <h1 class="headline">
+                Stop Wasting Time on <br>
+                <span class="gradient-span">Misleading Videos.</span>
+            </h1>
+            <p class="sub-description">
+                Instantly evaluate the credibility of any YouTube video. Our AI analyzes videos for factual accuracy, logical consistency, and source reliability.
+            </p>
+
+            <div class="action-row">
+                <a th:if="${isLoggedIn}" href="/index" class="btn-action btn-glass btn-green" style="font-size:18px;">
+                    Go to Dashboard →
+                </a>
+                <a th:unless="${isLoggedIn}" href="/oauth2/authorization/google" class="btn-action btn-glass btn-green" style="font-size:18px; gap:8px;">
+                    <svg class="google-svg" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/><path fill="#FF3D00" d="m6.306 14.691 6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"/><path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0 1 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/><path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"/></svg>
+                    Get Started with Google →
+                </a>
+                <a href="/how-it-works" class="btn-action btn-glass" style="font-size:18px;">
+                    How It Works
+                </a>
+                <a href="#interactive-deck" onclick="document.getElementById('interactive-deck').scrollIntoView({behavior:'smooth'}); return false;" class="btn-action btn-glass" style="font-size:18px;">
+                    Interactive Demo
+                </a>
+            </div>
+
+            
+            <div class="video-showcase-container">
+                <div class="video-glass-frame">
+                    <div class="video-viewport">
+                        <video class="embedded-showcase" autoplay loop muted playsinline>
+                            <source th:src="@{/test.mp4}" type="video/mp4">
+                        </video>
+                    </div>
+                </div>
+            </div>
+
+            
+            <div class="hologram-section" id="interactive-deck">
+                <h3 class="hologram-section-title">Interactive Credibility Preview</h3>
+                <p class="hologram-section-subtitle">
+                    Hover over the card to see how our AI classifies credibility and flags potential bias or low reliability in real time.
+                </p>
+                <div class="holo-card-wrapper" style="max-width: 520px; margin: 0 auto;">
+                    <div class="hologram-card" id="tilt-card">
+                        <div class="card-dots">
+                            <div class="cdot active-green"></div>
+                            <div class="cdot"></div>
+                            <div class="cdot"></div>
+                        </div>
+                        <div class="metric-ring-space">
+                            <div class="inner-score">
+                                <h2 id="live-score">85</h2>
+                                <span>SCORE</span>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <div class="trust-badge" id="live-badge">Highly Credible 👍</div>
+                            <p class="summary-block" id="live-summary">
+                                The video presents well-sourced factual claims with consistent logical reasoning and deep analytical backing.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+
+</body>
+</html>

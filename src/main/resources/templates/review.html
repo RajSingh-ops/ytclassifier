@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <div th:replace="~{base :: head('Review Panel - YT-Classifier')}"></div>
+</head>
+<body>
+
+    <div th:replace="~{base :: background}"></div>
+
+    <div class="container">
+
+        <nav th:replace="~{base :: navbar('review')}"></nav>
+
+        <div class="review-grid">
+
+            <div class="glass-card">
+                <h3 class="section-title">Share Your Experience</h3>
+
+                <form th:action="@{/review/add}" method="post" id="review-form">
+                    <div class="form-group">
+                        <label class="form-label">How would you rate YT-Classifier?</label>
+                        <div class="rating-select">
+                            <button type="button" class="star-btn" data-value="1">★</button>
+                            <button type="button" class="star-btn" data-value="2">★</button>
+                            <button type="button" class="star-btn" data-value="3">★</button>
+                            <button type="button" class="star-btn" data-value="4">★</button>
+                            <button type="button" class="star-btn" data-value="5">★</button>
+                        </div>
+                        <input type="hidden" name="rating" id="rating-input" value="5">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="comment-text">Review Comments</label>
+                        <textarea name="comment" id="comment-text" class="textarea-input" placeholder="What do you think about our credibility auditing tool? (Features, accuracy, extension design, etc.)" required></textarea>
+                    </div>
+
+                    <button type="submit" class="primary-btn" style="width: 100%;">
+                        Submit Review
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                    </button>
+                </form>
+            </div>
+
+            <div class="glass-card">
+                <h3 class="section-title">Community Reviews</h3>
+
+                <div class="reviews-feed">
+                    <div class="review-card" th:each="review : ${reviews}">
+                        <div class="review-header">
+                            <div class="reviewer-info">
+                                <img class="reviewer-avatar" th:src="${review.userPicture != null ? review.userPicture : 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y'}" alt="Reviewer Avatar" referrerpolicy="no-referrer">
+                                <div class="reviewer-details">
+                                    <span class="reviewer-name" th:text="${review.userName != null ? review.userName : 'Anonymous'}">Reviewer Name</span>
+                                    <span class="review-date" th:text="${#temporals.format(review.createdAt, 'dd MMM yyyy, HH:mm')}">Date</span>
+                                </div>
+                            </div>
+                            <div class="rating-stars">
+                                <span th:each="star : ${#numbers.sequence(1, 5)}"
+                                      th:class="'star-icon ' + (${star <= review.rating} ? 'filled' : '')">★</span>
+                            </div>
+                        </div>
+                        <p class="review-comment" th:text="${review.comment}">Review comment goes here...</p>
+                    </div>
+
+                    <div class="empty-feed" th:if="${reviews == null or #lists.isEmpty(reviews)}">
+                        No reviews posted yet. Be the first to share your experience!
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+</body>
+</html>

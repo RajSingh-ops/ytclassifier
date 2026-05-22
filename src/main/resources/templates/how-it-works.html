@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{base :: head('YT-Classifier | How It Works')}"></head>
+<body>
+
+    <div th:replace="~{base :: landing-background}"></div>
+
+    <div class="container">
+        
+        <header th:replace="~{base :: landing-navbar}"></header>
+
+        <main class="hero-deck">
+            <h1 class="headline" style="margin-bottom: 12px;">
+                How <span class="gradient-span">It Works</span>
+            </h1>
+            <p class="sub-description" style="margin-bottom: 48px;">
+                Understand the complete workflow behind our real-time YouTube credibility verification and authorization pipeline.
+            </p>
+
+            <div class="glass-card" style="text-align: left; max-width: 900px; margin: 0 auto 40px; border-color: rgba(0, 255, 102, 0.25);">
+                <h3 class="section-title">The Verification Process</h3>
+                
+                <p style="color: var(--text-muted); line-height: 1.6; margin-bottom: 24px; font-size: 16px;">
+                    YT-Classifier integrates a Chrome Extension and a secure Spring Boot backend to analyze videos on the fly. 
+                    Below is the step-by-step lifecycle of how a video is validated and evaluated.
+                </p>
+
+                <!-- Flowchart Image -->
+                <div style="width: 100%; border-radius: 16px; overflow: hidden; background: rgba(0, 0, 0, 0.4); border: 1.5px solid rgba(255,255,255,0.08); padding: 12px; margin-bottom: 32px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+                    <img th:src="@{/flowchart.png}" alt="Request Flowchart" style="width: 100%; height: auto; display: block; border-radius: 8px;">
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 24px;">
+                    <div style="display: flex; gap: 20px; align-items: flex-start;">
+                        <div style="width: 32px; height: 32px; background: rgba(0,255,102,0.1); border: 1px solid var(--accent-green); color: var(--accent-green); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0; font-size: 14px;">1</div>
+                        <div>
+                            <h4 style="font-size: 18px; font-weight: 700; margin-bottom: 6px; color: var(--text-light);">Video ID Extraction</h4>
+                            <p style="color: var(--text-muted); font-size: 15px; line-height: 1.5;">When you load a YouTube watch page, the extension identifies the 11-character video ID from the active URL.</p>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 20px; align-items: flex-start;">
+                        <div style="width: 32px; height: 32px; background: rgba(0,255,102,0.1); border: 1px solid var(--accent-green); color: var(--accent-green); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0; font-size: 14px;">2</div>
+                        <div>
+                            <h4 style="font-size: 18px; font-weight: 700; margin-bottom: 6px; color: var(--text-light);">Dual-Path Authentication Check</h4>
+                            <p style="color: var(--text-muted); font-size: 15px; line-height: 1.5;">The request is secured using two authentication pathways:
+                                <ul style="margin-left: 20px; margin-top: 8px; color: var(--text-muted); font-size: 14px; line-height: 1.6;">
+                                    <li><strong>Custom YID:</strong> The backend embeds your account's unique YID token in your downloaded extension configuration. If detected, the API processes requests instantly, even if you are logged out of the dashboard website.</li>
+                                    <li><strong>Active Session Cookie:</strong> If you are using a generic anonymous extension download, the server falls back to checking your active browser session cookie.</li>
+                                </ul>
+                            </p>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 20px; align-items: flex-start;">
+                        <div style="width: 32px; height: 32px; background: rgba(0,255,102,0.1); border: 1px solid var(--accent-green); color: var(--accent-green); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0; font-size: 14px;">3</div>
+                        <div>
+                            <h4 style="font-size: 18px; font-weight: 700; margin-bottom: 6px; color: var(--text-light);">Database Caching</h4>
+                            <p style="color: var(--text-muted); font-size: 15px; line-height: 1.5;">Before running evaluations, the backend queries our SQLite database. If the video was already evaluated previously, the cached results are returned instantly to lower load times.</p>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 20px; align-items: flex-start;">
+                        <div style="width: 32px; height: 32px; background: rgba(0,255,102,0.1); border: 1px solid var(--accent-green); color: var(--accent-green); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0; font-size: 14px;">4</div>
+                        <div>
+                            <h4 style="font-size: 18px; font-weight: 700; margin-bottom: 6px; color: var(--text-light);">News & Informational Classification</h4>
+                            <p style="color: var(--text-muted); font-size: 15px; line-height: 1.5;">If not cached, the server fetches details via the YouTube API. It checks the video category and keywords. Videos classified under non-informational fields (like Music, Comedy, or Sports) are marked as non-applicable and skipped.</p>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 20px; align-items: flex-start;">
+                        <div style="width: 32px; height: 32px; background: rgba(0,255,102,0.1); border: 1px solid var(--accent-green); color: var(--accent-green); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0; font-size: 14px;">5</div>
+                        <div>
+                            <h4 style="font-size: 18px; font-weight: 700; margin-bottom: 6px; color: var(--text-light);">Direct AI Credibility Rating</h4>
+                            <p style="color: var(--text-muted); font-size: 15px; line-height: 1.5;">Informational videos are scored directly using the video URL and YouTube metadata via OpenRouter AI. This eliminates transcription delays, resulting in highly responsive and resource-friendly assessments.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 40px; padding-top: 24px; border-top: 1px solid rgba(255, 255, 255, 0.08); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                    <a href="/" class="btn-action btn-glass">← Back to Home</a>
+                    <a th:if="${isLoggedIn}" href="/index" class="btn-action btn-glass btn-green">Go to Dashboard →</a>
+                    <a th:unless="${isLoggedIn}" href="/oauth2/authorization/google" class="btn-action btn-glass btn-green">Log In with Google</a>
+                </div>
+            </div>
+        </main>
+    </div>
+
+</body>
+</html>

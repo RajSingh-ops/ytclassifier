@@ -15,7 +15,7 @@ public class SecurityConfig {
         http
             .csrf(csrf -> csrf.ignoringRequestMatchers("/api/**")) // Enable CSRF globally, ignore only for stateless /api/**
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/", "/api/video/**", "/test.mp4", "/spa.css", "/app.js", "/logo.png", "/favicon.ico").permitAll()
+                .requestMatchers("/", "/api/video/**", "/test.mp4", "/spa.css", "/app.js", "/logo.png", "/flowchart.png", "/favicon.ico", "/how-it-works").permitAll()
                 .anyRequest().authenticated() // Require login for anything else
             )
             .oauth2Login(oauth2 -> oauth2

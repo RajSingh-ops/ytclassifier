@@ -8,8 +8,6 @@ function extractVideoId() {
         console.log("Found videoId:", videoId);
 
         chrome.storage.local.set({ videoId });
-        
-        // Remove existing UI if navigating to a new video
         removeUI();
         injectButton(videoId);
     } else {
@@ -20,7 +18,6 @@ function extractVideoId() {
 }
 
 function injectButton(videoId) {
-    // Prevent multiple buttons, just update videoId and show it
     const existingBtn = document.getElementById('yt-classifier-btn');
     if (existingBtn) {
         existingBtn.onclick = () => {
@@ -71,7 +68,7 @@ function injectButton(videoId) {
 
     btn.onclick = () => {
         injectUI(videoId);
-        btn.style.display = 'none'; // hide button after click
+        btn.style.display = 'none';
     };
 
     container.insertBefore(btn, container.firstChild);
@@ -90,11 +87,9 @@ function injectUI(videoId) {
         return;
     }
 
-    // Try to find the YouTube right sidebar to inject into
     const container = document.querySelector('#secondary-inner') || document.querySelector('#secondary');
     
     if (!container) {
-        // YouTube loads dynamically, retry after a delay
         setTimeout(() => injectUI(videoId), 1000);
         return;
     }
@@ -111,7 +106,6 @@ function injectUI(videoId) {
     iframe.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.4)';
     iframe.style.zIndex = '9999';
 
-    // Insert iframe right after the hidden button (or at top)
     const btn = document.getElementById('yt-classifier-btn');
     if (btn && btn.nextSibling) {
         container.insertBefore(iframe, btn.nextSibling);
@@ -127,14 +121,11 @@ function removeUI() {
     }
 }
 
-// ...existing code...
 extractVideoId();
 
-// ...existing code...
 document.addEventListener('yt-navigate-finish', extractVideoId);
 document.addEventListener('yt-page-data-updated', extractVideoId);
 
-// ...existing code...
 setInterval(() => {
     const url = window.location.href;
     const match = url.match(/[?&]v=([^&]+)/);
@@ -144,7 +135,6 @@ setInterval(() => {
         const iframe = document.getElementById('yt-classifier-iframe');
         const container = document.querySelector('#secondary-inner') || document.querySelector('#secondary');
         
-        // If on a video page, container exists, but our UI got wiped out, re-inject
         if (container && !btn && !iframe) {
             injectButton(videoId);
         }

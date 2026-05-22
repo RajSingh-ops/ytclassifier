@@ -258,7 +258,6 @@ public class VideoController {
         }
 
         String configJsContent = """
-        // Dynamically generated extension configuration
         const EXTENSION_CONFIG = {
             userYid: "%s",
             userName: "%s",
@@ -269,7 +268,7 @@ public class VideoController {
         try (java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
              java.util.zip.ZipOutputStream zos = new java.util.zip.ZipOutputStream(baos)) {
 
-            String[] files = {"manifest.json", "popup.html", "popup.js", "content.js", "preview.html"};
+            String[] files = {"manifest.json", "popup.html", "popup.js", "content.js", "preview.html", "test.jpg"};
             java.io.File extensionDir = new java.io.File("extension");
 
             for (String fileName : files) {

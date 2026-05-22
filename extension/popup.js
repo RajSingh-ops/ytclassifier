@@ -1,4 +1,3 @@
-// ...existing code...
 const loadingState = document.getElementById("loading-state");
 const resultState = document.getElementById("result-state");
 const infoState = document.getElementById("info-state");
@@ -13,7 +12,6 @@ const infoIcon = document.getElementById("info-icon");
 const infoTitle = document.getElementById("info-title");
 const infoDesc = document.getElementById("info-desc");
 
-// ...existing code...
 function showState(state) {
     loadingState.classList.add("hidden");
     resultState.classList.add("hidden");
@@ -30,9 +28,8 @@ function showState(state) {
     }
 }
 
-// ...existing code...
 function animateRing(score) {
-    const circumference = 2 * Math.PI * 65; // r=65
+    const circumference = 2 * Math.PI * 65;
     const offset = circumference - (score / 100) * circumference;
 
     let color, glowColor;
@@ -50,13 +47,11 @@ function animateRing(score) {
     scoreRing.style.stroke = color;
     scoreRing.style.setProperty("--ring-color", glowColor);
 
-    // Trigger animation
     requestAnimationFrame(() => {
         scoreRing.style.strokeDashoffset = offset;
     });
 }
 
-// ...existing code...
 function animateCounter(target) {
     let current = 0;
     const duration = 1200;
@@ -65,7 +60,7 @@ function animateCounter(target) {
     function step(timestamp) {
         const elapsed = timestamp - start;
         const progress = Math.min(elapsed / duration, 1);
-        const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+        const eased = 1 - Math.pow(1 - progress, 3);
 
         current = Math.round(eased * target);
         scoreNumber.textContent = current;
@@ -78,7 +73,6 @@ function animateCounter(target) {
     requestAnimationFrame(step);
 }
 
-// ...existing code...
 function setStatus(score) {
     statusBadge.classList.remove("high", "medium", "low", "neutral");
 
@@ -94,14 +88,12 @@ function setStatus(score) {
     }
 }
 
-// ...existing code...
 function showInfo(title, desc) {
     infoTitle.textContent = title;
     infoDesc.textContent = desc;
     showState("info");
 }
 
-// ...existing code...
 async function run() {
     try {
         if (typeof EXTENSION_CONFIG !== 'undefined' && EXTENSION_CONFIG.userYid && EXTENSION_CONFIG.userYid !== "ANONYMOUS") {
@@ -113,11 +105,9 @@ async function run() {
 
         showState("loading");
 
-        // First check if videoId was passed in via iframe URL parameters
         const urlParams = new URLSearchParams(window.location.search);
         let videoId = urlParams.get('videoId');
 
-        // Fallback for when clicking the extension icon directly
         if (!videoId) {
             const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
             
@@ -153,31 +143,26 @@ async function run() {
 
         console.log("API RESPONSE:", data);
 
-        // ❌ API error
         if (!data || data.error) {
             showInfo("API Error", data?.error || "Something went wrong while contacting the server.");
             return;
         }
 
-        // ❌ Missing score
         if (typeof data.credibilityScore === "undefined") {
             showInfo("Invalid Response", "The backend returned an unexpected format.");
             return;
         }
 
-        // 🔥 NOT INFORMATIONAL
         if (data.credibilityScore === -1) {
             showInfo("Not Informational", data.explanation || "This video is not an informational video.");
             return;
         }
 
-        // 🔥 AI FAILED / TRANSCRIPT FAILED
         if (data.credibilityScore === 0) {
             showInfo("Unavailable", data.explanation || "Could not analyze this video.");
             return;
         }
 
-        // 🔥 NORMAL CASE — Show Score
         showState("result");
         animateRing(data.credibilityScore);
         animateCounter(data.credibilityScore);

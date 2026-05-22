@@ -65,9 +65,14 @@ public class VideoService {
             newVideo.getUsers().add(user);
         }
 
-        // 🔥 Step 2: Skip non-news BUT SAVE
-        if (!type.equals("news")) {
-            String msg = "This is a " + type + " video, not a news video";
+        // 🔥 Step 2: Skip non-informational BUT SAVE
+        if (!type.equals("news") && !type.equals("education") && !type.equals("technology")) {
+            String msg;
+            if (type.equals("other")) {
+                msg = "This video is not an informational video";
+            } else {
+                msg = "This is a " + type + " video, not an informational video";
+            }
             newVideo.setCredibilityScore(-1);
             newVideo.setExplanation(msg);
             return videoRepository.save(newVideo);
@@ -164,14 +169,15 @@ Description: %s
 
         String text = (title + " " + description).toLowerCase();
 
-        if (categoryId.equals("10")) return "music";
-        if (categoryId.equals("24")) return "entertainment";
-        if (categoryId.equals("17")) return "sports";
-        if (categoryId.equals("23")) return "comedy";
-
         if (categoryId.equals("25") || text.contains("news")) return "news";
-        if (categoryId.equals("27") || text.contains("tutorial") || text.contains("learn")) return "education";
-        if (categoryId.equals("28") || text.contains("ai") || text.contains("programming")) return "technology";
+        if (categoryId.equals("27") || text.contains("tutorial") || text.contains("learn") || text.contains("educational") || text.contains("education") || text.contains("fact")) return "education";
+        if (categoryId.equals("28") || text.contains("ai") || text.contains("programming") || text.contains("technology") || text.contains("tech") || text.contains("science")) return "technology";
+
+        if (categoryId.equals("10")) return "music";
+        if (categoryId.equals("23")) return "comedy";
+        if (categoryId.equals("24") || categoryId.equals("1")) return "entertainment";
+        if (categoryId.equals("17")) return "sports";
+        if (categoryId.equals("20")) return "gaming";
 
         return "other";
     }

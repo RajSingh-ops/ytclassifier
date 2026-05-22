@@ -9,78 +9,14 @@ function extractVideoId() {
 
         chrome.storage.local.set({ videoId });
         removeUI();
-        injectButton(videoId);
+        injectUI(videoId);
     } else {
         console.log("No video ID found");
         removeUI();
-        removeButton();
     }
-}
-
-function injectButton(videoId) {
-    const existingBtn = document.getElementById('yt-classifier-btn');
-    if (existingBtn) {
-        existingBtn.onclick = () => {
-            injectUI(videoId);
-            existingBtn.style.display = 'none';
-        };
-        existingBtn.style.display = 'flex';
-        return;
-    }
-
-    const container = document.querySelector('#secondary-inner') || document.querySelector('#secondary');
-    
-    if (!container) {
-        setTimeout(() => injectButton(videoId), 1000);
-        return;
-    }
-
-    const btn = document.createElement('button');
-    btn.id = 'yt-classifier-btn';
-    btn.innerHTML = 'AI Check';
-    btn.style.width = '100%';
-    btn.style.padding = '14px';
-    btn.style.marginBottom = '16px';
-    btn.style.backgroundColor = 'rgba(239, 68, 68, 0.15)'; 
-    btn.style.border = '1px solid rgba(239, 68, 68, 0.3)';
-    btn.style.color = '#fca5a5';
-    btn.style.borderRadius = '12px';
-    btn.style.fontSize = '15px';
-    btn.style.fontWeight = '600';
-    btn.style.cursor = 'pointer';
-    btn.style.display = 'flex';
-    btn.style.alignItems = 'center';
-    btn.style.justifyContent = 'center';
-    btn.style.transition = 'all 0.2s ease';
-    btn.style.backdropFilter = 'blur(8px)';
-    btn.style.fontFamily = 'Roboto, Arial, sans-serif'; 
-    
-    btn.onmouseover = () => {
-        btn.style.backgroundColor = 'rgba(239, 68, 68, 0.25)';
-        btn.style.transform = 'translateY(-1px)';
-        btn.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.2)';
-    };
-    btn.onmouseout = () => {
-        btn.style.backgroundColor = 'rgba(239, 68, 68, 0.15)';
-        btn.style.transform = 'translateY(0)';
-        btn.style.boxShadow = 'none';
-    };
-
-    btn.onclick = () => {
-        injectUI(videoId);
-        btn.style.display = 'none';
-    };
-
-    container.insertBefore(btn, container.firstChild);
-}
-
-function removeButton() {
-    const existing = document.getElementById('yt-classifier-btn');
-    if (existing) existing.remove();
 }
 
 function injectUI(videoId) {
-    // Prevent multiple injections, just update src if it exists
     const existing = document.getElementById('yt-classifier-iframe');
     if (existing) {
         existing.src = chrome.runtime.getURL(`popup.html?videoId=${videoId}`);
@@ -106,14 +42,10 @@ function injectUI(videoId) {
     iframe.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.4)';
     iframe.style.zIndex = '9999';
 
-    const btn = document.getElementById('yt-classifier-btn');
-    if (btn && btn.nextSibling) {
-        container.insertBefore(iframe, btn.nextSibling);
-    } else {
-        container.insertBefore(iframe, container.firstChild);
-    }
+    container.insertBefore(iframe, container.firstChild);
 }
 
+// removeUI removes the injected iframe from the page.
 function removeUI() {
     const existing = document.getElementById('yt-classifier-iframe');
     if (existing) {
@@ -131,12 +63,11 @@ setInterval(() => {
     const match = url.match(/[?&]v=([^&]+)/);
     if (match && match[1]) {
         const videoId = match[1];
-        const btn = document.getElementById('yt-classifier-btn');
         const iframe = document.getElementById('yt-classifier-iframe');
         const container = document.querySelector('#secondary-inner') || document.querySelector('#secondary');
         
-        if (container && !btn && !iframe) {
-            injectButton(videoId);
+        if (container && !iframe) {
+            injectUI(videoId);
         }
     }
 }, 2000);

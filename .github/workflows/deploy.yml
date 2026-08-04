@@ -47,12 +47,11 @@ jobs:
           # Pass runner environment variables to the remote SSH shell
           envs: OPENROUTER_API_KEY,YOUTUBE_API_KEY,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET
           script: |
-            set -e
+            set -euo pipefail
             mkdir -p ~/app
             cd ~/app
 
-            # Created in the user's home directory to prevent permission errors
-            mkdir -p ~/data
+            mkdir -p /home/ubuntu/data
 
             cat > .env <<EOF
             OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
@@ -67,11 +66,31 @@ jobs:
               exit 1
             fi
 
-            pkill -f "java -jar" || true
-            nohup java -jar "$JAR_FILE" > app.log 2>&1 &
+            if [ -f app.pid ]; then
+              OLD_PID=$(cat app.pid 2>/dev/null || true)
+              if [ -n "$OLD_PID" ]; then
+                kill "$OLD_PID" 2>/dev/null || true
+                for _ in 1 2 3 4 5; do
+                  if ! kill -0 "$OLD_PID" 2>/dev/null; then
+                    break
+                  fi
+                  sleep 1
+                done
+                kill -9 "$OLD_PID" 2>/dev/null || true
+              fi
+              rm -f app.pid
+            fi
 
-            sleep 10
-            echo "Deployment finished successfully."
+            nohup java -jar "$JAR_FILE" > app.log 2>&1 < /dev/null &
+            echo $! > app.pid
+
+            sleep 8
+            if ps -p "$(cat app.pid)" > /dev/null 2>&1; then
+              echo "Deployment finished successfully."
+            else
+              echo "Application failed to start."
+              exit 1
+            fi
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}

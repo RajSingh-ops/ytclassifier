@@ -76,21 +76,15 @@ jobs:
               exit 1
             fi
 
-            if [ -f app.pid ]; then
-              OLD_PID=$(cat app.pid 2>/dev/null || true)
-              if [ -n "$OLD_PID" ]; then
-                kill "$OLD_PID" 2>/dev/null || true
-                for _ in 1 2 3 4 5; do
-                  if ! kill -0 "$OLD_PID" 2>/dev/null; then
-                    break
-                  fi
-                  sleep 1
-                done
-                kill -9 "$OLD_PID" 2>/dev/null || true
-              fi
-              rm -f app.pid
-            fi
+            # Kill ONLY the process on port 8080 (safe & targeted)
+            echo "Stopping process on port 8080..."
+            fuser -k 8080/tcp 2>/dev/null || true
+            sleep 2
+            # Double-check it's free
+            fuser -k -9 8080/tcp 2>/dev/null || true
+            sleep 1
 
+            echo "Starting $JAR_FILE..."
             nohup java -jar "$JAR_FILE" > app.log 2>&1 < /dev/null &
             echo $! > app.pid
 

@@ -38,3 +38,5 @@ build/
 ytclassifier.db
 maven_output.txt
 
+*.pem
+

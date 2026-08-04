@@ -1,0 +1,76 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Make Maven wrapper executable
+        run: chmod +x mvnw
+
+      - name: Build with Maven
+        run: ./mvnw clean package -DskipTests
+
+      - name: Copy JAR to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "target/*.jar"
+          target: "~/app/"
+          strip_components: 1
+
+      - name: Deploy and restart app on EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            set -e
+            mkdir -p ~/app
+            cd ~/app
+
+            mkdir -p /home/ubuntu/data
+
+            cat > .env <<EOF
+            OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+            YOUTUBE_API_KEY=${YOUTUBE_API_KEY}
+            client_id=${GOOGLE_CLIENT_ID}
+            client_secret=${GOOGLE_CLIENT_SECRET}
+            EOF
+
+            JAR_FILE=$(find "$HOME/app" -maxdepth 1 -type f -name '*.jar' | head -n 1)
+            if [ -z "$JAR_FILE" ]; then
+              echo "No JAR file found in ~/app"
+              exit 1
+            fi
+
+            pkill -f "java -jar" || true
+            nohup java -jar "$JAR_FILE" > app.log 2>&1 &
+
+            sleep 10
+            echo "Deployment finished successfully."
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}

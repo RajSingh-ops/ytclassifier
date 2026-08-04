@@ -4,6 +4,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const badgeEl = document.getElementById('live-badge');
     const summaryEl = document.getElementById('live-summary');
 
+    // Audit Report Elements
+    const factualMetric = document.getElementById('live-metric-factual');
+    const factualFill = document.getElementById('live-fill-factual');
+    const sourcesMetric = document.getElementById('live-metric-sources');
+    const sourcesFill = document.getElementById('live-fill-sources');
+    const fallaciesMetric = document.getElementById('live-metric-fallacies');
+    const fallaciesFill = document.getElementById('live-fill-fallacies');
+
     if (card && scoreH && badgeEl && summaryEl) {
         const wrapper = card.parentElement;
         let currentScore = 85;
@@ -23,28 +31,80 @@ document.addEventListener('DOMContentLoaded', () => {
             const rect = card.getBoundingClientRect();
             const x = e.clientX - rect.left - rect.width / 2;
             const y = e.clientY - rect.top - rect.height / 2;
-            card.style.transform = `rotateX(${-(y / rect.height) * 20}deg) rotateY(${(x / rect.width) * 20}deg)`;
 
             if (x > 0 && y > 0) {
                 if (!card.classList.contains('south-east-danger')) {
                     card.classList.add('south-east-danger');
-                    badgeEl.innerHTML = "Low Credibility ⚠️";
+                    badgeEl.innerText = "Low Credibility ⚠️";
+                    badgeEl.className = "trust-badge low-badge";
+                    
+                    if (factualMetric) factualMetric.innerText = "42%";
+                    if (factualFill) {
+                        factualFill.style.width = "42%";
+                        factualFill.style.backgroundColor = "var(--status-low)";
+                    }
+                    if (sourcesMetric) sourcesMetric.innerText = "50%";
+                    if (sourcesFill) {
+                        sourcesFill.style.width = "50%";
+                        sourcesFill.style.backgroundColor = "var(--status-low)";
+                    }
+                    if (fallaciesMetric) fallaciesMetric.innerText = "Multiple Flagged";
+                    if (fallaciesFill) {
+                        fallaciesFill.style.width = "35%";
+                        fallaciesFill.style.backgroundColor = "var(--status-low)";
+                    }
+
                     summaryEl.innerText = "The video metadata displays multiple conflicting metrics, unverifiable claims, and logical fallacies.";
                     animateToScore(35);
                 }
             } else if (card.classList.contains('south-east-danger')) {
                 card.classList.remove('south-east-danger');
-                badgeEl.innerHTML = "Highly Credible 👍";
+                badgeEl.innerText = "Highly Credible 👍";
+                badgeEl.className = "trust-badge credible-badge";
+
+                if (factualMetric) factualMetric.innerText = "92%";
+                if (factualFill) {
+                    factualFill.style.width = "92%";
+                    factualFill.style.backgroundColor = "var(--accent)";
+                }
+                if (sourcesMetric) sourcesMetric.innerText = "88%";
+                if (sourcesFill) {
+                    sourcesFill.style.width = "88%";
+                    sourcesFill.style.backgroundColor = "var(--accent)";
+                }
+                if (fallaciesMetric) fallaciesMetric.innerText = "None Flagged";
+                if (fallaciesFill) {
+                    fallaciesFill.style.width = "100%";
+                    fallaciesFill.style.backgroundColor = "var(--status-high)";
+                }
+
                 summaryEl.innerText = "The video presents well-sourced factual claims with consistent logical reasoning and deep analytical backing.";
                 animateToScore(85);
             }
         });
 
         wrapper.addEventListener('mouseleave', () => {
-            card.style.transform = 'rotateX(0deg) rotateY(0deg)';
             if (card.classList.contains('south-east-danger')) {
                 card.classList.remove('south-east-danger');
-                badgeEl.innerHTML = "Highly Credible 👍";
+                badgeEl.innerText = "Highly Credible 👍";
+                badgeEl.className = "trust-badge credible-badge";
+
+                if (factualMetric) factualMetric.innerText = "92%";
+                if (factualFill) {
+                    factualFill.style.width = "92%";
+                    factualFill.style.backgroundColor = "var(--accent)";
+                }
+                if (sourcesMetric) sourcesMetric.innerText = "88%";
+                if (sourcesFill) {
+                    sourcesFill.style.width = "88%";
+                    sourcesFill.style.backgroundColor = "var(--accent)";
+                }
+                if (fallaciesMetric) fallaciesMetric.innerText = "None Flagged";
+                if (fallaciesFill) {
+                    fallaciesFill.style.width = "100%";
+                    fallaciesFill.style.backgroundColor = "var(--status-high)";
+                }
+
                 summaryEl.innerText = "The video presents well-sourced factual claims with consistent logical reasoning and deep analytical backing.";
             }
             animateToScore(85);
@@ -124,15 +184,15 @@ function updateResultUI(score, explanation) {
     if (score >= 70) {
         badge.innerText = "Highly Credible 👍";
         badge.className = "badge-status status-credible";
-        ring.style.stroke = "var(--accent-green)";
+        ring.style.stroke = "var(--status-high)";
     } else if (score >= 40) {
         badge.innerText = "Neutral / Mixed ⚖️";
         badge.className = "badge-status status-neutral";
-        ring.style.stroke = "var(--text-light)";
+        ring.style.stroke = "var(--status-mid)";
     } else if (score >= 0) {
         badge.innerText = "Low Credibility ⚠️";
         badge.className = "badge-status status-low";
-        ring.style.stroke = "var(--accent-red)";
+        ring.style.stroke = "var(--status-low)";
     } else {
         badge.innerText = "Non-News Video ℹ️";
         badge.className = "badge-status status-neutral";
@@ -198,7 +258,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (score >= 0) {
                 videoLabels.push(vid);
                 videoScores.push(score);
-                pointColors.push(score > 50 ? '#00ff66' : '#ff0033');
+                pointColors.push(score > 50 ? '#10b981' : '#ef4444');
             }
         }
     });
@@ -212,16 +272,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 datasets: [{
                     label: 'Credibility Score',
                     data: videoScores,
-                    borderColor: 'rgba(255, 255, 255, 0.2)',
+                    borderColor: 'rgba(37, 99, 235, 0.25)',
                     segment: {
-                        borderColor: ctx => ctx.p1.parsed.y > 50 ? '#00ff66' : '#ff0033'
+                        borderColor: ctx => ctx.p1.parsed.y > 50 ? '#10b981' : '#ef4444'
                     },
                     pointBackgroundColor: pointColors,
-                    pointBorderColor: '#fff',
-                    pointRadius: 6,
-                    pointHoverRadius: 8,
-                    borderWidth: 3,
-                    tension: 0.3
+                    pointBorderColor: '#09090b',
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    borderWidth: 2,
+                    tension: 0.2
                 }]
             },
             options: {
@@ -230,12 +290,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     y: {
                         beginAtZero: true,
                         max: 100,
-                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
-                        ticks: { color: '#ccc' }
+                        grid: { color: '#27272a' },
+                        ticks: { color: '#a1a1aa' }
                     },
                     x: {
                         grid: { display: false },
-                        ticks: { color: '#ccc' }
+                        ticks: { color: '#a1a1aa' }
                     }
                 },
                 plugins: {

@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title th:text="${pageTitle}">YT-Classifier</title>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" th:href="@{/spa.css}">
     <link rel="icon" th:href="@{/logo.png}">
     <script th:src="@{/app.js}" defer></script>
@@ -18,37 +18,27 @@
 </div>
 
 <div th:fragment="landing-background">
-    <div class="bg-matrix">
-        <div class="laser-line"></div>
-        <div class="laser-line"></div>
-        <div class="laser-line"></div>
-    </div>
-    <div class="floating-yt float-1"></div>
-    <div class="floating-yt float-2"></div>
-    <div class="floating-yt float-3"></div>
-    <div class="floating-yt float-4"></div>
+    <div class="bg-matrix"></div>
 </div>
 
 <header th:fragment="landing-navbar">
-    <div class="header-container" style="display:flex; justify-content:space-between; align-items:center; width:100%; padding:32px 0; flex-wrap:wrap; gap:12px;">
-        <div class="logo-hub" style="background:rgba(255,255,255,0.03); padding:10px 20px; border-radius:100px; border:1px solid rgba(255,255,255,0.08); backdrop-filter:blur(10px); cursor:pointer;" onclick="window.location='/'">
-            <img th:src="@{/logo.png}" alt="Logo" class="logo-image">
-            <span class="logo-title">YT-Classifier</span>
-            <span class="users-badge">
-                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-                <span th:text="${userCount}">0</span> Users
-            </span>
-        </div>
-        <div class="nav-actions" style="display:flex; align-items:center; gap:12px;">
-            <a href="/how-it-works" class="btn-action btn-glass" style="padding:10px 24px; font-size:14px;">
-                How It Works?
+    <div class="logo-hub" onclick="window.location='/'">
+        <img th:src="@{/logo.png}" alt="Logo" class="logo-image">
+        <span class="logo-title">YT-Classifier</span>
+        <span class="users-badge">
+            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            <span th:text="${userCount}">0</span> Users
+        </span>
+    </div>
+    <div class="nav-actions">
+        <a href="/how-it-works" class="btn-action btn-glass">
+            How It Works?
+        </a>
+        <div th:if="${isLoggedIn}" style="display:flex; align-items:center; gap:10px;">
+            <img th:if="${userPicture}" th:src="${userPicture}" alt="Avatar" referrerpolicy="no-referrer" class="avatar">
+            <a href="/index" class="btn-action btn-green">
+                Dashboard →
             </a>
-            <div th:if="${isLoggedIn}" style="display:flex; align-items:center; gap:12px;">
-                <img th:if="${userPicture}" th:src="${userPicture}" alt="Avatar" referrerpolicy="no-referrer" style="width:30px; height:30px; border-radius:50%; border:1.5px solid var(--accent-green);">
-                <a href="/index" class="btn-action btn-glass btn-green" style="padding:10px 24px; font-size:14px;">
-                    Go to Dashboard →
-                </a>
-            </div>
         </div>
     </div>
 </header>
@@ -63,7 +53,7 @@
         </span>
     </div>
 
-    <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
         <a href="/index" class="btn-nav" th:classappend="${activePage == 'dashboard'} ? ' active-nav' : ''">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line></svg>
             <span>Dashboard</span>
@@ -72,13 +62,13 @@
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
             <span>Reviews</span>
         </a>
-        <a href="/ytclassifier-extension.zip" download class="btn-nav" style="border-color:rgba(0,255,102,0.3); color:var(--accent-green);">
+        <a href="/ytclassifier-extension.zip" download class="btn-nav">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
             <span>Extension</span>
         </a>
         <div class="user-profile" th:if="${userName != null or userEmail != null}">
             <img class="avatar" th:src="${userPicture != null ? userPicture : 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y'}" alt="Avatar" referrerpolicy="no-referrer">
-            <span class="username" style="font-size:14px; font-weight:700;" th:text="${userName != null ? userName : userEmail}">User</span>
+            <span class="username" th:text="${userName != null ? userName : userEmail}">User</span>
             <form th:action="@{/logout}" method="post" style="display:inline;">
                 <button type="submit" class="logout-btn">Logout</button>
             </form>

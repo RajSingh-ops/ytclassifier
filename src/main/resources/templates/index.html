@@ -14,7 +14,7 @@
 
         <div class="db-grid">
 
-            <div class="main-column" style="display:flex; flex-direction:column; gap:32px;">
+            <div class="main-column" style="display:flex; flex-direction:column; gap:28px;">
 
                 <div class="glass-card">
                     <h3 class="section-title">Check Video Credibility</h3>
@@ -23,20 +23,20 @@
                         <input type="text" id="video-url-input" class="text-input" placeholder="Paste YouTube Video URL or ID (e.g., https://www.youtube.com/watch?v=dQw4w9WgXcQ)">
                         <button id="analyze-btn" class="primary-btn" onclick="analyzeVideo()">
                             Analyze
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                         </button>
                     </div>
 
                     <div id="loading-state" class="loading-container">
                         <div class="pulse-ring"></div>
-                        <p style="color: var(--accent-green); font-weight: 700; letter-spacing: 1px;">AI IS ANALYZING VIDEO...</p>
+                        <p style="color: var(--accent); font-weight: 600; font-size: 13px; letter-spacing: 0.05em; text-transform: uppercase;">Analyzing video credibility...</p>
                     </div>
 
                     <div id="result-panel" class="result-panel">
-                        <h4 style="font-family: 'Space Grotesk', sans-serif; margin-bottom: 24px; font-size: 18px;">Analysis Result</h4>
+                        <h4 style="margin-bottom: 20px; font-size: 15px; font-weight: 600; color: var(--text-primary);">Analysis Result</h4>
                         <div class="result-layout">
                             <div class="radial-progress-container">
-                                <svg class="radial-svg">
+                                <svg class="radial-svg" viewBox="0 0 140 140">
                                     <circle class="progress-bg" cx="70" cy="70" r="64"></circle>
                                     <circle id="score-ring" class="progress-bar" cx="70" cy="70" r="64"></circle>
                                 </svg>
@@ -52,45 +52,43 @@
 
                 <div class="glass-card">
                     <h3 class="section-title">Analysis History</h3>
-                    <div class="history-list-wrapper" style="overflow-x: auto;">
-                        <table class="history-table" style="width: 100%; border-collapse: collapse; text-align: left;">
+                    <div class="history-list-wrapper" style="overflow-x: auto; width: 100%;">
+                        <table class="history-table">
                             <thead>
-                                <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.1); color: var(--text-muted); font-size: 14px;">
-                                    <th style="padding: 12px 8px;">Video</th>
-                                    <th style="padding: 12px 8px;">Title</th>
-                                    <th style="padding: 12px 8px;">Channel</th>
-                                    <th style="padding: 12px 8px; text-align: center;">Score</th>
-                                    <th style="padding: 12px 8px;">Explanation</th>
+                                <tr>
+                                    <th>Video</th>
+                                    <th>Title</th>
+                                    <th>Channel</th>
+                                    <th style="text-align: center;">Score</th>
+                                    <th>Explanation</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr th:each="video : ${videos}" style="border-bottom: 1px solid rgba(255, 255, 255, 0.05); font-size: 14px; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.02)'" onmouseout="this.style.backgroundColor='transparent'">
-                                    <td style="padding: 16px 8px;">
-                                        <a th:href="'https://www.youtube.com/watch?v=' + ${video.videoId}" target="_blank" style="position: relative; display: block; width: 120px; height: 68px; border-radius: 8px; overflow: hidden; border: 1.5px solid rgba(255, 255, 255, 0.1); box-shadow: 0 4px 12px rgba(0,0,0,0.5); transition: all 0.2s;" onmouseover="this.style.borderColor='var(--accent-green)'; this.style.transform='scale(1.03)'; this.querySelector('.overlay-play').style.opacity='1';" onmouseout="this.style.borderColor='rgba(255, 255, 255, 0.1)'; this.style.transform='scale(1)'; this.querySelector('.overlay-play').style.opacity='0';">
+                                <tr th:each="video : ${videos}">
+                                    <td>
+                                        <a th:href="'https://www.youtube.com/watch?v=' + ${video.videoId}" target="_blank" class="history-thumbnail-link">
                                             <img th:src="'https://img.youtube.com/vi/' + ${video.videoId} + '/mqdefault.jpg'" alt="Video Thumbnail" style="width: 100%; height: 100%; object-fit: cover;">
-                                            <div class="overlay-play" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.45); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s;">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="#00ff66"><path d="M8 5v14l11-7z"/></svg>
+                                            <div class="overlay-play">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
                                             </div>
                                         </a>
                                     </td>
-                                    <td style="padding: 16px 8px; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" th:text="${video.title != null ? video.title : 'N/A'}" th:title="${video.title}">Title</td>
-                                    <td style="padding: 16px 8px; color: var(--text-muted);" th:text="${video.channelName != null ? video.channelName : 'N/A'}">Channel</td>
-                                    <td style="padding: 16px 8px; text-align: center;">
+                                    <td class="history-title-cell" th:text="${video.title != null ? video.title : 'N/A'}" th:title="${video.title}">Title</td>
+                                    <td th:text="${video.channelName != null ? video.channelName : 'N/A'}" style="color: var(--text-secondary); font-size: 13px;">Channel</td>
+                                    <td style="text-align: center;">
                                         <span th:if="${video.credibilityScore >= 0}"
                                               th:text="${video.credibilityScore}"
-                                              th:classappend="${video.credibilityScore > 50} ? 'score-tag score-high' : 'score-tag score-low'"
-                                              style="padding: 4px 10px; border-radius: 20px; font-weight: 800; font-size: 12px;">
+                                              th:classappend="${video.credibilityScore > 50} ? 'score-tag score-high' : 'score-tag score-low'">
                                             90
                                         </span>
-                                        <span th:if="${video.credibilityScore < 0}"
-                                              style="background: rgba(255,255,255,0.05); color: var(--text-muted); padding: 4px 10px; border-radius: 20px; font-weight: 700; font-size: 12px;">
+                                        <span th:if="${video.credibilityScore < 0}" class="score-tag score-mid">
                                             Non-News
                                         </span>
                                     </td>
-                                    <td style="padding: 16px 8px; color: var(--text-muted); font-size: 13px;" th:text="${video.explanation}">Explanation text</td>
+                                    <td style="color: var(--text-secondary); font-size: 13px; max-width: 250px; line-height: 1.5;" th:text="${video.explanation}">Explanation text</td>
                                 </tr>
                                 <tr th:if="${#lists.isEmpty(videos)}">
-                                    <td colspan="5" style="text-align: center; padding: 32px; color: var(--text-muted);">
+                                    <td colspan="5" style="text-align: center; padding: 32px; color: var(--text-muted); font-size: 13px;">
                                         No videos analyzed yet.
                                     </td>
                                 </tr>
@@ -116,8 +114,8 @@
                     <canvas id="credibilityChart" width="400" height="250"></canvas>
                 </div>
 
-                <div class="instruction-module" style="margin-top: 20px;">
-                    <h3 class="module-title">Instructions Guide</h3>
+                <div class="instruction-module">
+                    <h3 class="section-title">Instructions Guide</h3>
                     <div class="step-accordion">
                         <div class="accordion-row active">
                             <div class="accordion-header" onclick="toggleAccordion(this)">
@@ -179,7 +177,6 @@
             </div>
         </div>
     </div>
-
 
 </body>
 </html>

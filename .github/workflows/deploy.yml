@@ -44,12 +44,15 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          # Pass runner environment variables to the remote SSH shell
+          envs: OPENROUTER_API_KEY,YOUTUBE_API_KEY,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET
           script: |
             set -e
             mkdir -p ~/app
             cd ~/app
 
-            mkdir -p /home/ubuntu/data
+            # Created in the user's home directory to prevent permission errors
+            mkdir -p ~/data
 
             cat > .env <<EOF
             OPENROUTER_API_KEY=${OPENROUTER_API_KEY}

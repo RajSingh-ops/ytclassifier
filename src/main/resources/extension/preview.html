@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>YouTube AI Classifier</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            width: 380px;
+            min-height: 420px;
+            background: #09090b;
+            color: #f4f4f5;
+            overflow: hidden;
+        }
+
+        .bg-glow, .bg-glow-2 {
+            display: none;
+        }
+
+        .header {
+            position: relative;
+            z-index: 1;
+            padding: 20px 24px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid #27272a;
+            background: #18181b;
+        }
+
+        .header-icon {
+            width: 32px;
+            height: 32px;
+            background: #2563eb;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 700;
+            color: #ffffff;
+            flex-shrink: 0;
+        }
+
+        .header-text h1 {
+            font-size: 15px;
+            font-weight: 600;
+            color: #fafafa;
+            letter-spacing: -0.3px;
+        }
+
+        .header-text span {
+            font-size: 11px;
+            font-weight: 500;
+            color: #a1a1aa;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .content {
+            position: relative;
+            z-index: 1;
+            padding: 28px 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .score-ring-container {
+            position: relative;
+            width: 160px;
+            height: 160px;
+            margin-bottom: 24px;
+        }
+
+        .score-ring-svg {
+            width: 160px;
+            height: 160px;
+            transform: rotate(-90deg);
+        }
+
+        .score-ring-bg {
+            fill: none;
+            stroke: #27272a;
+            stroke-width: 8;
+        }
+
+        .score-ring-fill {
+            fill: none;
+            stroke: #10b981;
+            stroke-width: 8;
+            stroke-linecap: round;
+            stroke-dasharray: 408;
+            stroke-dashoffset: 90;
+            transition: stroke-dashoffset 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .score-value {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        .score-number {
+            font-size: 42px;
+            font-weight: 700;
+            letter-spacing: -2px;
+            line-height: 1;
+            color: #fafafa;
+        }
+
+        .score-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: #71717a;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-top: 4px;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            border: 1px solid;
+            background: rgba(16, 185, 129, 0.08);
+            color: #10b981;
+            border-color: rgba(16, 185, 129, 0.2);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .explanation-card {
+            width: 100%;
+            background: #18181b;
+            border: 1px solid #27272a;
+            border-radius: 8px;
+            padding: 16px 18px;
+        }
+
+        .explanation-label {
+            font-size: 10px;
+            font-weight: 600;
+            color: #2563eb;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .explanation-text {
+            font-size: 13px;
+            font-weight: 400;
+            color: #a1a1aa;
+            line-height: 1.6;
+        }
+
+        .footer {
+            position: relative;
+            z-index: 1;
+            padding: 14px 24px;
+            border-top: 1px solid #27272a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            background: #18181b;
+        }
+
+        .footer span {
+            font-size: 10px;
+            font-weight: 500;
+            color: #71717a;
+            letter-spacing: 0.3px;
+        }
+
+        .footer .gemini-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            background: rgba(37, 99, 235, 0.1);
+            border: 1px solid rgba(37, 99, 235, 0.25);
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            color: #3b82f6;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-glow"></div>
+    <div class="bg-glow-2"></div>
+
+    <div class="header">
+        <div class="header-icon">🎯</div>
+    
+            <h1>AI Classifier</h1>
+            <span>Credibility Analysis</span>
+        </div>
+    </div>
+
+    <div class="content fade-in">
+        <div class="score-ring-container">
+            <svg class="score-ring-svg" viewBox="0 0 160 160">
+                <circle class="score-ring-bg" cx="80" cy="80" r="65"></circle>
+                <circle class="score-ring-fill" cx="80" cy="80" r="65"></circle>
+            </svg>
+            <div class="score-value">
+                <div class="score-number">78</div>
+                <div class="score-label">out of 100</div>
+            </div>
+        </div>
+
+        <div class="status-badge">
+            <div class="status-dot"></div>
+            <span>Highly Credible</span>
+        </div>
+
+        <div class="explanation-card">
+            <div class="explanation-label">AI Analysis</div>
+            <div class="explanation-text">The transcript presents well-sourced factual claims with consistent logical reasoning and references to peer-reviewed research.</div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <span>Powered by</span>
+        <span class="gemini-badge">✦ Gemini AI</span>
+    </div>
+</body>
+</html>
+
+    

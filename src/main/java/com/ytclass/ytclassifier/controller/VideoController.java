@@ -236,14 +236,13 @@ public class VideoController {
         try (java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
              java.util.zip.ZipOutputStream zos = new java.util.zip.ZipOutputStream(baos)) {
             String[] files = {"manifest.json", "popup.html", "popup.js", "content.js", "preview.html", "test.jpg"};
-            java.io.File extensionDir = new java.io.File("extension");
             for (String fileName : files) {
-                java.io.File file = new java.io.File(extensionDir, fileName);
-                if (file.exists()) {
-                    zos.putNextEntry(new java.util.zip.ZipEntry(fileName));
-                    byte[] content = java.nio.file.Files.readAllBytes(file.toPath());
-                    zos.write(content);
-                    zos.closeEntry();
+                try (java.io.InputStream is = getClass().getResourceAsStream("/extension/" + fileName)) {
+                    if (is != null) {
+                        zos.putNextEntry(new java.util.zip.ZipEntry(fileName));
+                        is.transferTo(zos);
+                        zos.closeEntry();
+                    }
                 }
             }
             zos.putNextEntry(new java.util.zip.ZipEntry("config.js"));

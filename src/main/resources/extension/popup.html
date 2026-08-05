@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>YouTube AI Classifier</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            width: 100%;
+            min-width: 300px;
+            min-height: 440px;
+            background: #09090b;
+            color: #f4f4f5;
+            overflow-y: auto;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.02);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(37, 99, 235, 0.4);
+        }
+
+        .bg-glow, .bg-glow-2 {
+            display: none;
+        }
+
+        .header {
+            position: relative;
+            z-index: 1;
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid #27272a;
+            background: #18181b;
+        }
+
+        .header-icon {
+            width: 28px;
+            height: 28px;
+            background: #2563eb;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-size: 13px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .header-text h1 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #fafafa;
+            letter-spacing: -0.3px;
+        }
+
+        .header-text span {
+            font-size: 10px;
+            font-weight: 500;
+            color: #a1a1aa;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .content {
+            position: relative;
+            z-index: 1;
+            padding: 24px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .score-ring-container {
+            position: relative;
+            width: 140px;
+            height: 140px;
+            margin-bottom: 20px;
+        }
+
+        .score-ring-svg {
+            width: 140px;
+            height: 140px;
+            transform: rotate(-90deg);
+        }
+
+        .score-ring-bg {
+            fill: none;
+            stroke: #27272a;
+            stroke-width: 8;
+        }
+
+        .score-ring-fill {
+            fill: none;
+            stroke-width: 8;
+            stroke-linecap: round;
+            stroke-dasharray: 408;
+            stroke-dashoffset: 408;
+            transition: stroke-dashoffset 1.5s cubic-bezier(0.4, 0, 0.2, 1),
+                        stroke 0.5s ease;
+        }
+
+        .score-value {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        .score-number {
+            font-size: 36px;
+            font-weight: 700;
+            letter-spacing: -1px;
+            line-height: 1;
+            color: #fafafa;
+        }
+
+        .score-label {
+            font-size: 9px;
+            font-weight: 600;
+            color: #71717a;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 2px;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            border: 1px solid;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .status-badge.high {
+            background: rgba(16, 185, 129, 0.08);
+            color: #10b981;
+            border-color: rgba(16, 185, 129, 0.2);
+        }
+
+        .status-badge.medium {
+            background: rgba(245, 158, 11, 0.08);
+            color: #f59e0b;
+            border-color: rgba(245, 158, 11, 0.2);
+        }
+
+        .status-badge.low {
+            background: rgba(239, 68, 68, 0.08);
+            color: #ef4444;
+            border-color: rgba(239, 68, 68, 0.2);
+        }
+
+        .status-badge.neutral {
+            background: rgba(113, 113, 122, 0.08);
+            color: #71717a;
+            border-color: rgba(113, 113, 122, 0.2);
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .explanation-card {
+            width: 100%;
+            background: #18181b;
+            border: 1px solid #27272a;
+            border-radius: 8px;
+            padding: 14px 16px;
+        }
+
+        .explanation-label {
+            font-size: 10px;
+            font-weight: 600;
+            color: #2563eb;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+        }
+
+        .explanation-text {
+            font-size: 13px;
+            font-weight: 400;
+            color: #a1a1aa;
+            line-height: 1.5;
+        }
+
+        .loading-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            padding: 30px 0;
+        }
+
+        .loading-spinner {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 2px solid #27272a;
+            border-top-color: #2563eb;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 13px;
+            font-weight: 500;
+            color: #71717a;
+        }
+
+        .loading-dots::after {
+            content: '';
+            animation: dots 1.5s steps(3, end) infinite;
+        }
+
+        @keyframes dots {
+            0% { content: ''; }
+            33% { content: '.'; }
+            66% { content: '..'; }
+            100% { content: '...'; }
+        }
+
+        .info-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            padding: 30px 20px;
+            text-align: center;
+        }
+
+        .info-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #fafafa;
+        }
+
+        .info-desc {
+            font-size: 13px;
+            color: #71717a;
+            line-height: 1.4;
+        }
+
+        .footer {
+            position: relative;
+            z-index: 1;
+            padding: 12px 20px;
+            border-top: 1px solid #27272a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            background: #18181b;
+        }
+
+        .footer span {
+            font-size: 10px;
+            font-weight: 500;
+            color: #71717a;
+            letter-spacing: 0.3px;
+        }
+
+        .footer .gemini-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 6px;
+            background: rgba(37, 99, 235, 0.1);
+            border: 1px solid rgba(37, 99, 235, 0.25);
+            border-radius: 4px;
+            font-size: 9px;
+            font-weight: 600;
+            color: #3b82f6;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+
+    
+    <div class="bg-glow"></div>
+    <div class="bg-glow-2"></div>
+
+    
+    <div class="header">
+        <div class="header-icon">AI</div>
+        <div class="header-text">
+            <h1>AI Classifier</h1>
+            <span>Credibility Analysis</span>
+            <div style="font-size: 10px; color: rgba(255, 255, 255, 0.4); margin-top: 2px;" id="user-info-display"></div>
+        </div>
+    </div>
+
+    
+    <div id="loading-state" class="content">
+        <div class="loading-container">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">Analyzing video<span class="loading-dots"></span></div>
+        </div>
+    </div>
+
+    
+    <div id="result-state" class="content hidden">
+        <div class="score-ring-container">
+            <svg class="score-ring-svg" viewBox="0 0 160 160">
+                <circle class="score-ring-bg" cx="80" cy="80" r="65"></circle>
+                <circle id="score-ring" class="score-ring-fill" cx="80" cy="80" r="65"></circle>
+            </svg>
+            <div class="score-value">
+                <div id="score-number" class="score-number">--</div>
+                <div class="score-label">out of 100</div>
+            </div>
+        </div>
+
+        <div id="status-badge" class="status-badge neutral">
+            <div class="status-dot"></div>
+            <span id="status-text">Analyzing</span>
+        </div>
+
+        <div class="explanation-card">
+            <div class="explanation-label">AI Analysis</div>
+            <div id="explanation-text" class="explanation-text">—</div>
+        </div>
+
+        <div style="font-size: 10px; color: rgba(255, 255, 255, 0.35); text-align: center; margin-top: 16px; line-height: 1.4; max-width: 260px; font-family: 'Inter', sans-serif;">
+            ⚠️ This credibility score is AI-generated and may contain inaccuracies. Please verify details independently.
+        </div>
+    </div>
+
+    
+    <div id="info-state" class="content hidden">
+        <div class="info-container">
+            <div id="info-icon" class="info-icon"></div>
+            <div id="info-title" class="info-title">Not a Video Page</div>
+            <div id="info-desc" class="info-desc">Navigate to a YouTube video to analyze its credibility.</div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="popup.js"></script>
+</body>
+</html>

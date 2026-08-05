@@ -8,7 +8,7 @@
 #  Required GitHub Secrets:
 #    EC2_HOST, EC2_USERNAME, EC2_SSH_KEY,
 #    OPENROUTER_API_KEY, YOUTUBE_API_KEY,
-#    GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
+#    CLIENT_ID, CLIENT_SECRET
 # ================================================================
 
 name: Build and Deploy
@@ -451,8 +451,8 @@ jobs:
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
-          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
-          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_CLIENT_ID: ${{ secrets.CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
           JAR_NAME: ${{ steps.build.outputs.jar_name }}
           EXPECTED_CHECKSUM: ${{ steps.build.outputs.jar_checksum }}
           DEPLOY_COMMIT: ${{ github.sha }}

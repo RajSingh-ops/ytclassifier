@@ -130,7 +130,7 @@ Description: %s
         try {
             String requestBody = """
             {
-              "model": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+              "model": "inclusionai/ling-3.0-flash:free",
               "messages": [
                 {"role": "user", "content": "%s"}
               ]

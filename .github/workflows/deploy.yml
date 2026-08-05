@@ -345,7 +345,21 @@ jobs:
 
             # ── f) Deploy the new JAR ──
             echo ""
-            cp "${JAR_NAME}" app-current.jar
+            # The new JAR from Maven is ytclassifier-0.0.1-SNAPSHOT.jar. 
+            # We must ignore app-current and app-previous when finding it!
+            JAR_NAME=$(ls *.jar | grep -v app-previous | grep -v app-current | head -1)
+            
+            if [ -z "$JAR_NAME" ]; then
+              echo "❌ FATAL: Could not find the newly uploaded JAR in $(pwd)!"
+              ls -la
+              exit 1
+            fi
+            
+            echo "🚀 Found new JAR: $JAR_NAME"
+            mv "$JAR_NAME" app-current.jar
+            # Remove any stray directories that might override the JAR classpath
+            rm -rf static public templates resources
+
             echo "🚀 Starting app-current.jar..."
 
             # Append to log (>> not >) to preserve history across deployments

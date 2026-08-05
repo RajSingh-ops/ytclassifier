@@ -314,26 +314,25 @@ jobs:
               OLD_PID=$(cat app.pid)
               echo "  Sending SIGTERM to PID $OLD_PID..."
               kill "$OLD_PID" 2>/dev/null || true
-
-              # Wait up to 30s for port 8080 to be released
-              for i in $(seq 1 30); do
-                if ! ss -tlnp 2>/dev/null | grep -q ':8080'; then
-                  echo "  ✅ Port 8080 released after ${i}s"
-                  break
-                fi
-                if [ "$i" -eq 30 ]; then
-                  echo "  ⚠️  Port still occupied after 30s — force killing..."
-                  kill -9 "$OLD_PID" 2>/dev/null || true
-                  fuser -k -9 8080/tcp 2>/dev/null || true
-                  sleep 2
-                fi
-                sleep 1
-              done
             else
               echo "  No running process found from PID file."
-              # Kill anything else that might hold port 8080
-              fuser -k 8080/tcp 2>/dev/null || true
+            fi
+
+            # Wait up to 15s for port 8080 to be released gracefully
+            for i in $(seq 1 15); do
+              if ! ss -tlnp 2>/dev/null | grep -q ':8080'; then
+                echo "  ✅ Port 8080 is free."
+                break
+              fi
               sleep 1
+            done
+
+            # Force kill anything still holding port 8080 or any stray java processes
+            if ss -tlnp 2>/dev/null | grep -q ':8080'; then
+              echo "  ⚠️  Port 8080 still occupied — force killing..."
+              sudo fuser -k -9 8080/tcp 2>/dev/null || true
+              sudo killall -9 java 2>/dev/null || true
+              sleep 2
             fi
 
             # ── e) Final port check — MUST be free before starting ──

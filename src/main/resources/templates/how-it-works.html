@@ -2,13 +2,9 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{base :: head('YT-Classifier | How It Works')}"></head>
 <body>
-
     <div th:replace="~{base :: landing-background}"></div>
-
     <div class="container">
-        
         <header th:replace="~{base :: landing-navbar}"></header>
-
         <main class="hero-deck">
             <h1 class="headline" style="margin-bottom: 12px;">
                 How <span class="gradient-span">It Works</span>
@@ -16,20 +12,15 @@
             <p class="sub-description" style="margin-bottom: 48px;">
                 Understand the complete workflow behind our real-time YouTube credibility verification and authorization pipeline.
             </p>
-
             <div class="glass-card" style="text-align: left; max-width: 900px; margin: 0 auto 40px;">
                 <h3 class="section-title">The Verification Process</h3>
-                
                 <p style="color: var(--text-secondary); line-height: 1.6; margin-bottom: 24px; font-size: 15px;">
                     YT-Classifier integrates a Chrome Extension and a secure Spring Boot backend to analyze videos on the fly. 
                     Below is the step-by-step lifecycle of how a video is validated and evaluated.
                 </p>
-
-                <!-- Flowchart Image -->
                 <div style="width: 100%; border-radius: var(--radius-lg); overflow: hidden; background: var(--bg-dark); border: 1px solid var(--border); padding: 12px; margin-bottom: 32px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
                     <img th:src="@{/flowchart.png}" alt="Request Flowchart" style="width: 100%; height: auto; display: block; border-radius: var(--radius-md);">
                 </div>
-
                 <div style="display: flex; flex-direction: column; gap: 28px;">
                     <div style="display: flex; gap: 20px; align-items: flex-start;">
                         <div style="width: 32px; height: 32px; background: var(--accent-light); border: 1px solid var(--accent-border); color: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; flex-shrink: 0; font-size: 13px;">1</div>
@@ -38,7 +29,6 @@
                             <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.6;">When you load a YouTube watch page, the extension identifies the 11-character video ID from the active URL.</p>
                         </div>
                     </div>
-
                     <div style="display: flex; gap: 20px; align-items: flex-start;">
                         <div style="width: 32px; height: 32px; background: var(--accent-light); border: 1px solid var(--accent-border); color: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; flex-shrink: 0; font-size: 13px;">2</div>
                         <div>
@@ -52,7 +42,6 @@
                             </div>
                         </div>
                     </div>
-
                     <div style="display: flex; gap: 20px; align-items: flex-start;">
                         <div style="width: 32px; height: 32px; background: var(--accent-light); border: 1px solid var(--accent-border); color: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; flex-shrink: 0; font-size: 13px;">3</div>
                         <div>
@@ -60,7 +49,6 @@
                             <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.6;">Before running evaluations, the backend queries our SQLite database. If the video was already evaluated previously, the cached results are returned instantly to lower load times.</p>
                         </div>
                     </div>
-
                     <div style="display: flex; gap: 20px; align-items: flex-start;">
                         <div style="width: 32px; height: 32px; background: var(--accent-light); border: 1px solid var(--accent-border); color: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; flex-shrink: 0; font-size: 13px;">4</div>
                         <div>
@@ -68,7 +56,6 @@
                             <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.6;">If not cached, the server fetches details via the YouTube API. It checks the video category and keywords. Videos classified under non-informational fields (like Music, Comedy, or Sports) are marked as non-applicable and skipped.</p>
                         </div>
                     </div>
-
                     <div style="display: flex; gap: 20px; align-items: flex-start;">
                         <div style="width: 32px; height: 32px; background: var(--accent-light); border: 1px solid var(--accent-border); color: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; flex-shrink: 0; font-size: 13px;">5</div>
                         <div>
@@ -77,7 +64,6 @@
                         </div>
                     </div>
                 </div>
-
                 <div style="margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
                     <a href="/" class="btn-action btn-glass">← Back to Home</a>
                     <a th:if="${isLoggedIn}" href="/index" class="btn-action btn-green">Go to Dashboard →</a>
@@ -86,6 +72,5 @@
             </div>
         </main>
     </div>
-
 </body>
 </html>

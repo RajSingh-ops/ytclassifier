@@ -2,13 +2,9 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{base :: head('YT-Classifier | Automated Video Credibility Audits')}"></head>
 <body>
-
     <div th:replace="~{base :: landing-background}"></div>
-
     <div class="container">
-        
         <header th:replace="~{base :: landing-navbar}"></header>
-
         <main class="hero-deck">
             <h1 class="headline">
                 Stop Wasting Time on <br>
@@ -17,7 +13,6 @@
             <p class="sub-description">
                 Instantly evaluate the credibility of any YouTube video. Our AI analyzes videos for factual accuracy, logical consistency, and source reliability.
             </p>
-
             <div class="action-row">
                 <a th:if="${isLoggedIn}" href="/index" class="btn-action btn-green">
                     Go to Dashboard →
@@ -33,8 +28,6 @@
                     Interactive Demo
                 </a>
             </div>
-
-            
             <div class="video-showcase-container">
                 <div class="video-glass-frame">
                     <div class="video-viewport">
@@ -44,8 +37,6 @@
                     </div>
                 </div>
             </div>
-
-            
             <div class="hologram-section" id="interactive-deck">
                 <h3 class="hologram-section-title">Credibility Audit Report</h3>
                 <p class="hologram-section-subtitle">
@@ -57,16 +48,13 @@
                             <span class="report-meta-tag">AUTOMATED CREDIBILITY AUDIT</span>
                             <span class="report-id" id="live-report-id">#YT-74921</span>
                         </div>
-                        
                         <div class="report-layout">
                             <div class="report-score-box">
                                 <div class="report-score-num" id="live-score">85</div>
                                 <span class="report-score-label">TRUST SCORE</span>
-                                <div class="trust-badge credible-badge" id="live-badge">Highly Credible 👍</div>
+                                <div class="trust-badge credible-badge" id="live-badge">Highly Credible</div>
                             </div>
-                            
                             <div class="report-details-box">
-                                <!-- Metric 1 -->
                                 <div class="report-metric-row">
                                     <div class="report-metric-info">
                                         <span class="report-metric-title">Factual Accuracy</span>
@@ -76,8 +64,6 @@
                                         <div class="report-progress-fill" id="live-fill-factual" style="width: 92%;"></div>
                                     </div>
                                 </div>
-                                
-                                <!-- Metric 2 -->
                                 <div class="report-metric-row">
                                     <div class="report-metric-info">
                                         <span class="report-metric-title">Source Reliability</span>
@@ -87,8 +73,6 @@
                                         <div class="report-progress-fill" id="live-fill-sources" style="width: 88%;"></div>
                                     </div>
                                 </div>
-
-                                <!-- Metric 3 -->
                                 <div class="report-metric-row">
                                     <div class="report-metric-info">
                                         <span class="report-metric-title">Logical Fallacies</span>
@@ -100,7 +84,6 @@
                                 </div>
                             </div>
                         </div>
-                        
                         <div class="summary-block" id="live-summary">
                             The video presents well-sourced factual claims with consistent logical reasoning and deep analytical backing.
                         </div>
@@ -109,6 +92,14 @@
             </div>
         </main>
     </div>
-
+    <footer class="site-footer">
+        <div class="footer-links">
+            <a href="/how-it-works">How It Works</a>
+            <a href="/privacy">Privacy Policy</a>
+            <a href="/terms">Terms of Service</a>
+            <a href="https://github.com/RajSingh-ops/ytclassifier" target="_blank">GitHub</a>
+        </div>
+        <p class="footer-copy">&copy; 2025 YT-Classifier. Built with Spring Boot &amp; AI.</p>
+    </footer>
 </body>
 </html>

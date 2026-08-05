@@ -130,7 +130,7 @@ Description: %s
         try {
             String requestBody = """
             {
-              "model": "google/gemma-4-31b-it:free",
+              "model": "meta-llama/llama-3-8b-instruct:free",
               "messages": [
                 {"role": "user", "content": "%s"}
               ]

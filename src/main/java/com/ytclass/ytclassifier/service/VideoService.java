@@ -77,6 +77,12 @@ Description: %s
         }
         newVideo.setCredibilityScore(score);
         newVideo.setExplanation(explanation);
+        
+        // Do not cache API errors in the database so they can be retried
+        if (explanation.contains("No endpoints found") || explanation.contains("Provider returned error") || explanation.contains("OpenRouter Error")) {
+            return newVideo;
+        }
+        
         return videoRepository.save(newVideo);
     }
     private com.ytclass.ytclassifier.model.User getFirstUser() {

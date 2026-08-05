@@ -130,7 +130,7 @@ Description: %s
         try {
             String requestBody = """
             {
-              "model": "meta-llama/llama-3-8b-instruct:free",
+              "model": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
               "messages": [
                 {"role": "user", "content": "%s"}
               ]

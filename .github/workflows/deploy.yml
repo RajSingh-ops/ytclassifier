@@ -1,42 +1,234 @@
+# ================================================================
+#  Build & Deploy — Production-Quality Pipeline
+# ================================================================
+#  This workflow builds a Spring Boot JAR, validates that frontend
+#  resources are packaged inside it, copies it to EC2 with checksum
+#  verification, and deploys with health checks and auto-rollback.
+#
+#  Required GitHub Secrets:
+#    EC2_HOST, EC2_USERNAME, EC2_SSH_KEY,
+#    OPENROUTER_API_KEY, YOUTUBE_API_KEY,
+#    GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
+# ================================================================
+
 name: Build and Deploy
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     environment: production
+    # Prevents the entire pipeline from hanging forever
+    timeout-minutes: 15
 
     steps:
+      # ─────────────────────────────────────────────
+      #  1. CHECKOUT & TRACE COMMIT
+      #  Print the exact commit being built so you
+      #  can always correlate a deployment with code.
+      # ─────────────────────────────────────────────
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up JDK 25
+      - name: Print build context
+        run: |
+          echo "=========================================="
+          echo "  BUILD CONTEXT"
+          echo "=========================================="
+          echo "  Commit SHA : ${{ github.sha }}"
+          echo "  Short SHA  : $(echo '${{ github.sha }}' | cut -c1-7)"
+          echo "  Branch     : ${{ github.ref_name }}"
+          echo "  Trigger    : ${{ github.event_name }}"
+          echo "  Actor      : ${{ github.actor }}"
+          echo "  Run #      : ${{ github.run_number }}"
+          echo "  Timestamp  : $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+          echo "=========================================="
+
+      # ─────────────────────────────────────────────
+      #  2. SET UP JAVA
+      # ─────────────────────────────────────────────
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '25'
+          java-version: '21'
           cache: maven
 
+      # ─────────────────────────────────────────────
+      #  3. VERIFY SOURCE FILES EXIST
+      #  Fail early if templates or static assets
+      #  are missing — avoids building a JAR that
+      #  would serve a blank page.
+      # ─────────────────────────────────────────────
+      - name: Verify frontend source files
+        run: |
+          echo "🔍 Checking source files before build..."
+          echo ""
+
+          echo "=== Thymeleaf Templates ==="
+          find src/main/resources/templates -type f -name '*.html' 2>/dev/null | sort
+          TEMPLATE_COUNT=$(find src/main/resources/templates -type f -name '*.html' 2>/dev/null | wc -l)
+          echo "Found: $TEMPLATE_COUNT HTML template(s)"
+          echo ""
+
+          echo "=== Static Assets ==="
+          find src/main/resources/static -type f 2>/dev/null | sort
+          STATIC_COUNT=$(find src/main/resources/static -type f 2>/dev/null | wc -l)
+          echo "Found: $STATIC_COUNT static file(s)"
+          echo ""
+
+          if [ "$TEMPLATE_COUNT" -eq 0 ]; then
+            echo "❌ ERROR: No HTML templates found in src/main/resources/templates/"
+            echo "   Your UI will not render. Aborting."
+            exit 1
+          fi
+
+          echo "✅ Source file verification passed"
+
+      # ─────────────────────────────────────────────
+      #  4. BUILD & VALIDATE THE JAR
+      #  - Build with Maven (clean to avoid stale classes)
+      #  - Find the exact executable fat JAR
+      #  - Use 'jar tf' to verify templates & static
+      #    assets are inside BOOT-INF/classes/
+      #  - Compute SHA-256 checksum
+      # ─────────────────────────────────────────────
       - name: Make Maven wrapper executable
         run: chmod +x mvnw
 
-      - name: Build with Maven
-        run: ./mvnw clean package -DskipTests
+      - name: Build and validate JAR
+        id: build
+        run: |
+          echo "🔨 Building with Maven (clean package)..."
+          echo ""
+          ./mvnw -B -ntp clean package -DskipTests
+          echo ""
 
-      - name: Clean old JARs on EC2
+          # ── Show everything Maven produced ──
+          echo "📂 Contents of target/:"
+          ls -lah target/*.jar* 2>/dev/null || echo "  (no JAR files found)"
+          echo ""
+
+          # ── Find the executable Spring Boot fat JAR ──
+          # spring-boot-maven-plugin produces:
+          #   ytclassifier-0.0.1-SNAPSHOT.jar          ← fat JAR (we want this)
+          #   ytclassifier-0.0.1-SNAPSHOT.jar.original  ← thin JAR (skip)
+          # Maven may also produce -sources.jar, -javadoc.jar (skip both)
+          JAR_FILE=$(find target -maxdepth 1 -type f -name '*.jar' \
+            ! -name '*-sources.jar' \
+            ! -name '*-javadoc.jar' \
+            ! -name '*.jar.original' \
+            | head -n 1)
+
+          if [ -z "$JAR_FILE" ]; then
+            echo "❌ No executable JAR found in target/"
+            echo "   Full listing:"
+            ls -la target/
+            exit 1
+          fi
+
+          JAR_NAME=$(basename "$JAR_FILE")
+          JAR_SIZE=$(stat -c%s "$JAR_FILE")
+          JAR_SIZE_MB=$(echo "scale=2; $JAR_SIZE / 1048576" | bc)
+
+          echo "=========================================="
+          echo "  Executable JAR : $JAR_NAME"
+          echo "  Size           : ${JAR_SIZE_MB} MB ($JAR_SIZE bytes)"
+          echo "=========================================="
+          echo ""
+
+          # ── Verify templates are inside the JAR ──
+          echo "🔍 Verifying JAR contents with 'jar tf'..."
+          echo ""
+          echo "--- Templates inside JAR (BOOT-INF/classes/templates/) ---"
+          jar tf "$JAR_FILE" | grep 'BOOT-INF/classes/templates/' || {
+            echo "❌ FATAL: No templates found inside the JAR!"
+            echo "   Maven built the JAR but your HTML files are missing from it."
+            echo "   This is the most likely reason the old UI keeps showing."
+            exit 1
+          }
+          echo ""
+
+          echo "--- Static assets inside JAR (BOOT-INF/classes/static/) ---"
+          jar tf "$JAR_FILE" | grep 'BOOT-INF/classes/static/' || {
+            echo "❌ FATAL: No static assets found inside the JAR!"
+            exit 1
+          }
+          echo ""
+
+          echo "--- All HTML / CSS / JS files in JAR ---"
+          jar tf "$JAR_FILE" | grep -E '\.(html|css|js)$' | sort
+          echo ""
+          echo "✅ JAR content validation passed"
+          echo ""
+
+          # ── Compute SHA-256 checksum ──
+          CHECKSUM=$(sha256sum "$JAR_FILE" | awk '{print $1}')
+          echo "🔐 SHA-256 checksum: $CHECKSUM"
+
+          # ── Export outputs for later steps ──
+          echo "jar_path=$JAR_FILE"           >> "$GITHUB_OUTPUT"
+          echo "jar_name=$JAR_NAME"           >> "$GITHUB_OUTPUT"
+          echo "jar_checksum=$CHECKSUM"       >> "$GITHUB_OUTPUT"
+          echo "jar_size=${JAR_SIZE_MB} MB"   >> "$GITHUB_OUTPUT"
+
+      # ─────────────────────────────────────────────
+      #  5. COPY JAR TO EC2
+      #  Copies only the single identified JAR,
+      #  NOT target/*.jar (which would also copy
+      #  sources-jars and the thin .jar.original).
+      # ─────────────────────────────────────────────
+      - name: Prepare EC2 directories
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          command_timeout: 30s
           script: |
             mkdir -p ~/app
-            rm -f ~/app/*.jar
+            mkdir -p /home/ubuntu/data
+
+      - name: Ensure Java 21 is installed on EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          command_timeout: 3m
+          script: |
+            # Check if Java 21 is already installed
+            if java -version 2>&1 | grep -q '"21'; then
+              echo "✅ Java 21 is already installed:"
+              java -version 2>&1
+              exit 0
+            fi
+
+            echo "📦 Java 21 not found — installing Temurin JDK 21..."
+
+            # Install prerequisites
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq wget apt-transport-https gpg
+
+            # Add Adoptium (Temurin) APT repository
+            wget -qO - https://packages.adoptium.net/artifactory/api/gpg/key/public | \
+              gpg --dearmor | sudo tee /usr/share/keyrings/adoptium.gpg > /dev/null
+            echo "deb [signed-by=/usr/share/keyrings/adoptium.gpg] \
+              https://packages.adoptium.net/artifactory/deb $(lsb_release -cs) main" | \
+              sudo tee /etc/apt/sources.list.d/adoptium.list > /dev/null
+
+            # Install Temurin JDK 21
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq temurin-21-jdk
+
+            # Verify installation
+            echo ""
+            echo "✅ Java installed successfully:"
+            java -version 2>&1
 
       - name: Copy JAR to EC2
         uses: appleboy/scp-action@v0.1.7
@@ -44,59 +236,223 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: "target/*.jar"
+          source: ${{ steps.build.outputs.jar_path }}
           target: "~/app/"
           strip_components: 1
 
-      - name: Deploy and restart app on EC2
+      # ─────────────────────────────────────────────
+      #  6. DEPLOY WITH HEALTH CHECK & AUTO-ROLLBACK
+      #
+      #  Flow:
+      #    a) Verify JAR checksum (detect corrupt transfer)
+      #    b) Write .env config
+      #    c) Backup current JAR for rollback
+      #    d) Stop old process gracefully
+      #    e) Wait until port 8080 is actually free
+      #    f) Start new JAR
+      #    g) Wait up to 120s for HTTP 200
+      #    h) If startup fails → print logs → rollback
+      #    i) Print deployment summary
+      # ─────────────────────────────────────────────
+      - name: Deploy and verify on EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          # Pass runner environment variables to the remote SSH shell
-          envs: OPENROUTER_API_KEY,YOUTUBE_API_KEY,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET
+          command_timeout: 5m
+          envs: OPENROUTER_API_KEY,YOUTUBE_API_KEY,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,JAR_NAME,EXPECTED_CHECKSUM,DEPLOY_COMMIT
           script: |
             set -euo pipefail
-            mkdir -p ~/app
+
+            echo "=========================================="
+            echo "  DEPLOYMENT STARTING"
+            echo "  Timestamp : $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+            echo "  Hostname  : $(hostname)"
+            echo "  Java      : $(java -version 2>&1 | head -1)"
+            echo "  Commit    : ${DEPLOY_COMMIT}"
+            echo "  JAR       : ${JAR_NAME}"
+            echo "  CWD       : $(pwd)"
+            echo "=========================================="
+
             cd ~/app
 
-            mkdir -p /home/ubuntu/data
-
-            cat > .env <<EOF
-            OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
-            YOUTUBE_API_KEY=${YOUTUBE_API_KEY}
-            client_id=${GOOGLE_CLIENT_ID}
-            client_secret=${GOOGLE_CLIENT_SECRET}
-            EOF
-
-            JAR_FILE=$(find "$HOME/app" -maxdepth 1 -type f -name '*.jar' | head -n 1)
-            if [ -z "$JAR_FILE" ]; then
-              echo "No JAR file found in ~/app"
+            # ── a) Verify JAR was not corrupted during SCP ──
+            echo ""
+            echo "🔐 Verifying JAR integrity..."
+            RECEIVED_CHECKSUM=$(sha256sum "${JAR_NAME}" | awk '{print $1}')
+            echo "  Expected : ${EXPECTED_CHECKSUM}"
+            echo "  Received : ${RECEIVED_CHECKSUM}"
+            if [ "$RECEIVED_CHECKSUM" != "$EXPECTED_CHECKSUM" ]; then
+              echo "❌ CHECKSUM MISMATCH — JAR was corrupted during transfer!"
+              echo "   Aborting deployment. The old version is still running."
               exit 1
             fi
+            echo "  ✅ Checksum match — JAR is intact"
 
-            # Kill ONLY the process on port 8080 (safe & targeted)
-            echo "Stopping process on port 8080..."
-            fuser -k 8080/tcp 2>/dev/null || true
-            sleep 2
-            # Double-check it's free
-            fuser -k -9 8080/tcp 2>/dev/null || true
-            sleep 1
+            # ── b) Write environment config ──
+            # Spring Boot reads .env as a Java .properties file.
+            # Properties files do NOT use quotes around values —
+            # quotes would become part of the value itself.
+            # Using printf to safely handle special characters in secrets.
+            printf 'OPENROUTER_API_KEY=%s\n' "$OPENROUTER_API_KEY"   >  .env
+            printf 'YOUTUBE_API_KEY=%s\n'    "$YOUTUBE_API_KEY"      >> .env
+            printf 'client_id=%s\n'          "$GOOGLE_CLIENT_ID"     >> .env
+            printf 'client_secret=%s\n'      "$GOOGLE_CLIENT_SECRET" >> .env
+            echo "✅ .env written"
 
-            echo "Starting $JAR_FILE..."
-            nohup java -jar "$JAR_FILE" > app.log 2>&1 < /dev/null &
-            echo $! > app.pid
+            # ── c) Backup current JAR for rollback ──
+            if [ -f app-current.jar ]; then
+              cp app-current.jar app-previous.jar
+              echo "📦 Backed up current JAR → app-previous.jar"
+            fi
 
-            sleep 8
-            if ps -p "$(cat app.pid)" > /dev/null 2>&1; then
-              echo "Deployment finished successfully."
+            # ── d) Stop old process gracefully ──
+            echo ""
+            echo "🛑 Stopping old process..."
+            if [ -f app.pid ] && kill -0 "$(cat app.pid)" 2>/dev/null; then
+              OLD_PID=$(cat app.pid)
+              echo "  Sending SIGTERM to PID $OLD_PID..."
+              kill "$OLD_PID" 2>/dev/null || true
+
+              # Wait up to 30s for port 8080 to be released
+              for i in $(seq 1 30); do
+                if ! ss -tlnp 2>/dev/null | grep -q ':8080'; then
+                  echo "  ✅ Port 8080 released after ${i}s"
+                  break
+                fi
+                if [ "$i" -eq 30 ]; then
+                  echo "  ⚠️  Port still occupied after 30s — force killing..."
+                  kill -9 "$OLD_PID" 2>/dev/null || true
+                  fuser -k -9 8080/tcp 2>/dev/null || true
+                  sleep 2
+                fi
+                sleep 1
+              done
             else
-              echo "Application failed to start."
+              echo "  No running process found from PID file."
+              # Kill anything else that might hold port 8080
+              fuser -k 8080/tcp 2>/dev/null || true
+              sleep 1
+            fi
+
+            # ── e) Final port check — MUST be free before starting ──
+            if ss -tlnp 2>/dev/null | grep -q ':8080'; then
+              echo "❌ Port 8080 is STILL occupied! Cannot start."
+              ss -tlnp | grep ':8080'
               exit 1
             fi
+            echo "  ✅ Port 8080 is free"
+
+            # ── f) Deploy the new JAR ──
+            echo ""
+            cp "${JAR_NAME}" app-current.jar
+            echo "🚀 Starting app-current.jar..."
+
+            # Append to log (>> not >) to preserve history across deployments
+            nohup java -jar app-current.jar >> app.log 2>&1 < /dev/null &
+            echo $! > app.pid
+            echo "  PID: $(cat app.pid)"
+
+            # ── g) Health check — wait for HTTP 200 (up to 120s) ──
+            echo ""
+            echo "⏳ Waiting for application to respond on :8080 (up to 120s)..."
+            STARTED=false
+            for i in $(seq 1 120); do
+              # First check if the process is still alive
+              if ! kill -0 "$(cat app.pid)" 2>/dev/null; then
+                echo ""
+                echo "❌ Process died during startup (after ${i}s)!"
+                break
+              fi
+
+              # Then check if the app responds to HTTP
+              if curl -sf -o /dev/null --max-time 2 http://localhost:8080; then
+                echo ""
+                echo "✅ Application is healthy! (responded in ${i}s)"
+                STARTED=true
+                break
+              fi
+
+              # Progress indicator every 10 seconds
+              if [ $((i % 10)) -eq 0 ]; then
+                echo "  ...still waiting (${i}s elapsed)"
+              fi
+
+              sleep 1
+            done
+
+            # ── h) Handle failure: dump logs, then rollback ──
+            if [ "$STARTED" = false ]; then
+              echo ""
+              echo "=========================================="
+              echo "  ❌ DEPLOYMENT FAILED"
+              echo "=========================================="
+              echo ""
+              echo "📋 Last 100 lines of app.log:"
+              echo "─────────────────────────────────"
+              tail -100 app.log 2>/dev/null || echo "(no log file found)"
+              echo "─────────────────────────────────"
+
+              # Attempt automatic rollback
+              if [ -f app-previous.jar ]; then
+                echo ""
+                echo "🔄 Attempting automatic rollback to previous version..."
+                kill "$(cat app.pid)" 2>/dev/null || true
+                sleep 3
+                fuser -k 8080/tcp 2>/dev/null || true
+                sleep 2
+
+                cp app-previous.jar app-current.jar
+                nohup java -jar app-current.jar >> app.log 2>&1 < /dev/null &
+                echo $! > app.pid
+                echo "  Rollback PID: $(cat app.pid)"
+
+                ROLLBACK_OK=false
+                for i in $(seq 1 60); do
+                  if curl -sf -o /dev/null --max-time 2 http://localhost:8080; then
+                    echo "  ✅ Rollback successful — previous version is running"
+                    ROLLBACK_OK=true
+                    break
+                  fi
+                  sleep 1
+                done
+
+                if [ "$ROLLBACK_OK" = false ]; then
+                  echo "  ❌ Rollback also failed! Manual intervention required."
+                fi
+              else
+                echo ""
+                echo "  ⚠️  No previous JAR available for rollback."
+                echo "     This was likely the first deployment."
+              fi
+
+              exit 1
+            fi
+
+            # ── i) Post-deploy verification & summary ──
+            echo ""
+            echo "=========================================="
+            echo "  ✅ DEPLOYMENT SUCCESSFUL"
+            echo "=========================================="
+            echo "  Process  : $(ps -p $(cat app.pid) -o pid=,args= 2>/dev/null | head -1)"
+            echo "  Port 8080: $(ss -tlnp 2>/dev/null | grep ':8080' | head -1)"
+            HTTP_CODE=$(curl -sf -o /dev/null -w '%{http_code}' --max-time 5 http://localhost:8080 || echo "FAIL")
+            echo "  HTTP resp: $HTTP_CODE"
+            STARTED_COUNT=$(grep -c 'Started' app.log 2>/dev/null || echo "0")
+            echo "  'Started' : ${STARTED_COUNT} occurrence(s) in app.log"
+            echo "  Commit   : ${DEPLOY_COMMIT}"
+            echo "  JAR      : ${JAR_NAME}"
+            echo "  Deployed : $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+            echo "=========================================="
+
+            # Clean up the uploaded JAR (we run from app-current.jar)
+            rm -f "${JAR_NAME}"
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          JAR_NAME: ${{ steps.build.outputs.jar_name }}
+          EXPECTED_CHECKSUM: ${{ steps.build.outputs.jar_checksum }}
+          DEPLOY_COMMIT: ${{ github.sha }}

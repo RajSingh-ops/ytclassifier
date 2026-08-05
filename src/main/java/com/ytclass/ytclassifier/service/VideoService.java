@@ -130,7 +130,7 @@ Description: %s
         try {
             String requestBody = """
             {
-              "model": "openai/gpt-oss-120b:free",
+              "model": "meta-llama/llama-3-8b-instruct:free",
               "messages": [
                 {"role": "user", "content": "%s"}
               ]

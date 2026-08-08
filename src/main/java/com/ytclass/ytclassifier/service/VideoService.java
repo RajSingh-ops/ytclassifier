@@ -136,7 +136,7 @@ Description: %s
         try {
             String requestBody = """
             {
-              "model": "google/gemma-4-31b-it:free",
+              "model": "openrouter/free",
               "messages": [
                 {"role": "user", "content": "%s"}
               ]

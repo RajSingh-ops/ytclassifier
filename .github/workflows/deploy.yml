@@ -270,12 +270,39 @@ jobs:
             echo "  Timestamp : $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
             echo "  Hostname  : $(hostname)"
             echo "  Java      : $(java -version 2>&1 | head -1)"
+            echo "  Memory    : $(free -m | awk '/Mem:/{printf "%sMB used / %sMB total", $3, $2}')"
             echo "  Commit    : ${DEPLOY_COMMIT}"
             echo "  JAR       : ${JAR_NAME}"
             echo "  CWD       : $(pwd)"
             echo "=========================================="
 
             cd ~/app
+
+            # ── DIAGNOSTIC: Check for systemd services that might auto-restart old JARs ──
+            echo ""
+            echo "🔍 Checking for systemd services that could interfere..."
+            for svc in ytclassifier spring-boot java-app app webapp; do
+              if systemctl is-active "$svc" 2>/dev/null | grep -q 'active'; then
+                echo "  ⚠️  Found active service: $svc — STOPPING and DISABLING it"
+                sudo systemctl stop "$svc" 2>/dev/null || true
+                sudo systemctl disable "$svc" 2>/dev/null || true
+              fi
+            done
+            # Also check for any systemd services running java
+            JAVA_SERVICES=$(systemctl list-units --type=service --state=running 2>/dev/null | grep -i 'java\|spring\|ytclass\|app' || true)
+            if [ -n "$JAVA_SERVICES" ]; then
+              echo "  ⚠️  Found Java-related services:"
+              echo "$JAVA_SERVICES"
+            fi
+            echo "  ✅ Systemd check done"
+
+            # ── DIAGNOSTIC: Show what's currently running ──
+            echo ""
+            echo "🔍 Current Java processes:"
+            ps aux | grep '[j]ava' || echo "  (none running)"
+            echo ""
+            echo "🔍 Current app-current.jar hash:"
+            sha256sum app-current.jar 2>/dev/null | awk '{print "  " $1}' || echo "  (no app-current.jar)"
 
             # ── a) Verify JAR was not corrupted during SCP ──
             echo ""
@@ -291,49 +318,25 @@ jobs:
             echo "  ✅ Checksum match — JAR is intact"
 
             # ── b) Write environment config ──
-            # Spring Boot reads .env as a Java .properties file.
-            # Properties files do NOT use quotes around values —
-            # quotes would become part of the value itself.
-            # Using printf to safely handle special characters in secrets.
             printf 'OPENROUTER_API_KEY=%s\n' "$OPENROUTER_API_KEY"   >  .env
             printf 'YOUTUBE_API_KEY=%s\n'    "$YOUTUBE_API_KEY"      >> .env
             printf 'client_id=%s\n'          "$GOOGLE_CLIENT_ID"     >> .env
             printf 'client_secret=%s\n'      "$GOOGLE_CLIENT_SECRET" >> .env
             echo "✅ .env written"
 
-            # ── c) Backup current JAR for rollback ──
-            if [ -f app-current.jar ]; then
-              cp app-current.jar app-previous.jar
-              echo "📦 Backed up current JAR → app-previous.jar"
-            fi
-
-            # ── d) Stop old process gracefully ──
+            # ── c) NUKE all old JARs — no rollback to ancient versions ──
             echo ""
-            echo "🛑 Stopping old process..."
-            if [ -f app.pid ] && kill -0 "$(cat app.pid)" 2>/dev/null; then
-              OLD_PID=$(cat app.pid)
-              echo "  Sending SIGTERM to PID $OLD_PID..."
-              kill "$OLD_PID" 2>/dev/null || true
-            else
-              echo "  No running process found from PID file."
-            fi
+            echo "🗑️  Removing old JARs to prevent stale rollbacks..."
+            rm -f app-previous.jar
+            echo "  ✅ Old backup removed"
 
-            # Wait up to 15s for port 8080 to be released gracefully
-            for i in $(seq 1 15); do
-              if ! ss -tlnp 2>/dev/null | grep -q ':8080'; then
-                echo "  ✅ Port 8080 is free."
-                break
-              fi
-              sleep 1
-            done
-
-            # Force kill anything still holding port 8080 or any stray java processes
-            if ss -tlnp 2>/dev/null | grep -q ':8080'; then
-              echo "  ⚠️  Port 8080 still occupied — force killing..."
-              sudo fuser -k -9 8080/tcp 2>/dev/null || true
-              sudo killall -9 java 2>/dev/null || true
-              sleep 2
-            fi
+            # ── d) Stop ALL Java processes — leave nothing behind ──
+            echo ""
+            echo "🛑 Stopping ALL Java processes..."
+            sudo killall -9 java 2>/dev/null || true
+            sleep 2
+            sudo fuser -k -9 8080/tcp 2>/dev/null || true
+            sleep 1
 
             # ── e) Final port check — MUST be free before starting ──
             if ss -tlnp 2>/dev/null | grep -q ':8080'; then
@@ -345,22 +348,27 @@ jobs:
 
             # ── f) Deploy the new JAR ──
             echo ""
-            
+
             if [ ! -f "$JAR_NAME" ]; then
               echo "❌ FATAL: Could not find the newly uploaded JAR ($JAR_NAME) in $(pwd)!"
               ls -la
               exit 1
             fi
-            
+
             echo "🚀 Found new JAR: $JAR_NAME"
             mv "$JAR_NAME" app-current.jar
+
             # Remove any stray directories that might override the JAR classpath
             rm -rf static public templates resources
 
-            echo "🚀 Starting app-current.jar..."
+            # Truncate app.log to prevent disk fill on tiny instance
+            tail -500 app.log > app.log.tmp 2>/dev/null && mv app.log.tmp app.log || true
 
-            # Append to log (>> not >) to preserve history across deployments
-            nohup java -jar app-current.jar >> app.log 2>&1 < /dev/null &
+            echo "🚀 Starting app-current.jar with memory limits for t2.micro..."
+            echo "  New JAR hash: $(sha256sum app-current.jar | awk '{print $1}')"
+
+            # -Xmx384m caps heap to 384MB to fit in t2.micro's ~1GB RAM
+            nohup java -Xmx384m -Xms128m -XX:+UseSerialGC -jar app-current.jar >> app.log 2>&1 < /dev/null &
             echo $! > app.pid
             echo "  PID: $(cat app.pid)"
 
@@ -369,14 +377,14 @@ jobs:
             echo "⏳ Waiting for application to respond on :8080 (up to 120s)..."
             STARTED=false
             for i in $(seq 1 120); do
-              # First check if the process is still alive
               if ! kill -0 "$(cat app.pid)" 2>/dev/null; then
                 echo ""
                 echo "❌ Process died during startup (after ${i}s)!"
+                echo "📋 Last 30 lines of app.log:"
+                tail -30 app.log 2>/dev/null || true
                 break
               fi
 
-              # Then check if the app responds to HTTP
               if curl -sf -o /dev/null --max-time 2 http://localhost:8080; then
                 echo ""
                 echo "✅ Application is healthy! (responded in ${i}s)"
@@ -384,58 +392,31 @@ jobs:
                 break
               fi
 
-              # Progress indicator every 10 seconds
               if [ $((i % 10)) -eq 0 ]; then
-                echo "  ...still waiting (${i}s elapsed)"
+                MEM_USED=$(free -m | awk '/Mem:/{print $3}')
+                echo "  ...still waiting (${i}s elapsed, ${MEM_USED}MB RAM used)"
               fi
 
               sleep 1
             done
 
-            # ── h) Handle failure: dump logs, then rollback ──
+            # ── h) Handle failure — NO ROLLBACK, just fail loudly ──
             if [ "$STARTED" = false ]; then
               echo ""
               echo "=========================================="
-              echo "  ❌ DEPLOYMENT FAILED"
+              echo "  ❌ DEPLOYMENT FAILED — NO ROLLBACK"
               echo "=========================================="
               echo ""
               echo "📋 Last 100 lines of app.log:"
               echo "─────────────────────────────────"
               tail -100 app.log 2>/dev/null || echo "(no log file found)"
               echo "─────────────────────────────────"
-
-              # Attempt automatic rollback
-              if [ -f app-previous.jar ]; then
-                echo ""
-                echo "🔄 Attempting automatic rollback to previous version..."
-                kill "$(cat app.pid)" 2>/dev/null || true
-                sleep 3
-                fuser -k 8080/tcp 2>/dev/null || true
-                sleep 2
-
-                cp app-previous.jar app-current.jar
-                nohup java -jar app-current.jar >> app.log 2>&1 < /dev/null &
-                echo $! > app.pid
-                echo "  Rollback PID: $(cat app.pid)"
-
-                ROLLBACK_OK=false
-                for i in $(seq 1 60); do
-                  if curl -sf -o /dev/null --max-time 2 http://localhost:8080; then
-                    echo "  ✅ Rollback successful — previous version is running"
-                    ROLLBACK_OK=true
-                    break
-                  fi
-                  sleep 1
-                done
-
-                if [ "$ROLLBACK_OK" = false ]; then
-                  echo "  ❌ Rollback also failed! Manual intervention required."
-                fi
-              else
-                echo ""
-                echo "  ⚠️  No previous JAR available for rollback."
-                echo "     This was likely the first deployment."
-              fi
+              echo ""
+              echo "💾 Memory status:"
+              free -m
+              echo ""
+              echo "⚠️  NOT rolling back — rollback to old versions was causing the UI regression bug."
+              echo "   Fix the root cause and re-deploy."
 
               exit 1
             fi
@@ -449,10 +430,10 @@ jobs:
             echo "  Port 8080: $(ss -tlnp 2>/dev/null | grep ':8080' | head -1)"
             HTTP_CODE=$(curl -sf -o /dev/null -w '%{http_code}' --max-time 5 http://localhost:8080 || echo "FAIL")
             echo "  HTTP resp: $HTTP_CODE"
-            STARTED_COUNT=$(grep -c 'Started' app.log 2>/dev/null || echo "0")
-            echo "  'Started' : ${STARTED_COUNT} occurrence(s) in app.log"
+            echo "  JAR hash : $(sha256sum app-current.jar | awk '{print $1}')"
             echo "  Commit   : ${DEPLOY_COMMIT}"
             echo "  JAR      : ${JAR_NAME}"
+            echo "  Memory   : $(free -m | awk '/Mem:/{printf "%sMB used / %sMB total", $3, $2}')"
             echo "  Deployed : $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
             echo "=========================================="
 

@@ -23,6 +23,16 @@ public class Video {
     @Column(columnDefinition = "TEXT")
     private String explanation;
 
+    @Column(name = "created_at")
+    private java.time.LocalDateTime createdAt;
+
+    @PrePersist
+    protected void onCreate() {
+        if (createdAt == null) {
+            createdAt = java.time.LocalDateTime.now();
+        }
+    }
+
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
         name = "user_videos",

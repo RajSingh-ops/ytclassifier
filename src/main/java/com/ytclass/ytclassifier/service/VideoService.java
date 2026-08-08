@@ -136,7 +136,7 @@ Description: %s
         try {
             String requestBody = """
             {
-              "model": "inclusionai/ling-3.0-flash:free",
+              "model": "google/gemma-4-31b-it:free",
               "messages": [
                 {"role": "user", "content": "%s"}
               ]

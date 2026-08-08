@@ -345,12 +345,9 @@ jobs:
 
             # ── f) Deploy the new JAR ──
             echo ""
-            # The new JAR from Maven is ytclassifier-0.0.1-SNAPSHOT.jar. 
-            # We must ignore app-current and app-previous when finding it!
-            JAR_NAME=$(ls *.jar | grep -v app-previous | grep -v app-current | head -1)
             
-            if [ -z "$JAR_NAME" ]; then
-              echo "❌ FATAL: Could not find the newly uploaded JAR in $(pwd)!"
+            if [ ! -f "$JAR_NAME" ]; then
+              echo "❌ FATAL: Could not find the newly uploaded JAR ($JAR_NAME) in $(pwd)!"
               ls -la
               exit 1
             fi

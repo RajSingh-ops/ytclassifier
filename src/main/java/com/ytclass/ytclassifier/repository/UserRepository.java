@@ -1,8 +1,11 @@
 package com.ytclass.ytclassifier.repository;
 
 import com.ytclass.ytclassifier.model.User;
+import com.ytclass.ytclassifier.model.Video;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+
+import java.util.List;
 import java.util.Optional;
 
 @Repository

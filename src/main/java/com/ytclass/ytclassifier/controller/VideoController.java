@@ -104,7 +104,7 @@ public class VideoController {
             }
         }
         if (activeUser != null) {
-            mav.addObject("videos", videoRepository.findByUser(activeUser));
+            mav.addObject("videos", videoService.getUserVideos(activeUser));
         } else {
             mav.addObject("videos", java.util.Collections.emptyList());
         }

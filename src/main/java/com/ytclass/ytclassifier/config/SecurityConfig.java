@@ -29,7 +29,7 @@ public class SecurityConfig {
             )
             .headers(headers -> headers
     .contentSecurityPolicy(csp -> csp
-        .policyDirectives("default-src 'self'; script-src 'self'; object-src 'none'; frame-ancestors 'none'")
+        .policyDirectives("default-src 'self'; script-src 'self'; img-src 'self' https://i.ytimg.com https://img.youtube.com https://lh3.googleusercontent.com; object-src 'none'; frame-ancestors 'none'")
     )
 );
         return http.build();

@@ -1,0 +1,13 @@
+# Local development: run `docker compose up -d` to start Redis
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: ytclassifier-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+
+volumes:
+  redis-data:

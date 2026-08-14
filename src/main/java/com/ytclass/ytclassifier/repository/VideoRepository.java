@@ -13,4 +13,6 @@ import java.util.List;
 public interface VideoRepository extends JpaRepository<Video, String> {
     @Query("SELECT v FROM Video v JOIN v.users u WHERE u = :user ORDER BY v.createdAt DESC NULLS LAST, v.videoId DESC")
     List<Video> findByUser(@Param("user") User user);
+
+    List<Video> findTop50ByUsersOrderByCreatedAtDesc(User user);
 }

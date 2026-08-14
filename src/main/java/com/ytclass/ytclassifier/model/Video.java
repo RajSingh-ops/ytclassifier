@@ -8,7 +8,9 @@ import lombok.*;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Video {
+public class Video implements java.io.Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     @Id
     private String videoId;

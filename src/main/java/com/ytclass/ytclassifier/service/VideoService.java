@@ -1,13 +1,17 @@
 package com.ytclass.ytclassifier.service;
+import com.ytclass.ytclassifier.model.User;
 import com.ytclass.ytclassifier.model.Video;
 import com.ytclass.ytclassifier.repository.VideoRepository;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.http.*;
 import java.time.Duration;
+import java.util.List;
 import java.util.Optional;
 import java.util.regex.*;
 @Service
@@ -22,9 +26,15 @@ public class VideoService {
         this.videoRepository = videoRepository;
         this.userRepository = userRepository;
     }
+    @Cacheable(value = "userVideos", key = "#user.email")
+    public List<Video> getUserVideos(User user) {
+        System.out.println("🔥 DATABASE HIT");
+        return videoRepository.findTop50ByUsersOrderByCreatedAtDesc(user);
+    }
     public Video processVideo(String videoId) {
         return processVideo(videoId, getFirstUser());
     }
+    @CacheEvict(value="userVideos",key="#user.email")
     public Video processVideo(String videoId, com.ytclass.ytclassifier.model.User user) {
         java.util.Optional<Video> existing = videoRepository.findById(videoId);
         if (existing.isPresent()) {

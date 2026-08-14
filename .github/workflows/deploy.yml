@@ -230,6 +230,73 @@ jobs:
             echo "✅ Java installed successfully:"
             java -version 2>&1
 
+      - name: Ensure Docker is installed on EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          command_timeout: 3m
+          script: |
+            if command -v docker &> /dev/null; then
+              echo "✅ Docker is already installed:"
+              docker --version
+              exit 0
+            fi
+
+            echo "📦 Docker not found — installing Docker CE..."
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq ca-certificates curl gnupg
+            sudo install -m 0755 -d /etc/apt/keyrings
+            curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \
+              sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+            sudo chmod a+r /etc/apt/keyrings/docker.gpg
+            echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
+              https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | \
+              sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq docker-ce docker-ce-cli containerd.io
+            sudo usermod -aG docker $USER
+
+            echo ""
+            echo "✅ Docker installed successfully:"
+            docker --version
+
+      - name: Ensure Redis container is running on EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          command_timeout: 1m
+          script: |
+            # Check if Redis container already exists and is running
+            if sudo docker ps --format '{{.Names}}' | grep -q '^ytclassifier-redis$'; then
+              echo "✅ Redis container is already running"
+              sudo docker ps --filter name=ytclassifier-redis
+              exit 0
+            fi
+
+            # Check if container exists but is stopped — restart it
+            if sudo docker ps -a --format '{{.Names}}' | grep -q '^ytclassifier-redis$'; then
+              echo "🔄 Redis container exists but is stopped — restarting..."
+              sudo docker start ytclassifier-redis
+              echo "✅ Redis container restarted"
+              exit 0
+            fi
+
+            # Container doesn't exist — create it
+            echo "🚀 Starting new Redis container with persistent volume..."
+            sudo docker run -d \
+              --name ytclassifier-redis \
+              --restart unless-stopped \
+              -p 6379:6379 \
+              -v redis-data:/data \
+              redis:7-alpine
+
+            echo "✅ Redis container started"
+            sudo docker ps --filter name=ytclassifier-redis
+
       - name: Copy JAR to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -322,7 +389,8 @@ jobs:
             printf 'YOUTUBE_API_KEY=%s\n'    "$YOUTUBE_API_KEY"      >> .env
             printf 'client_id=%s\n'          "$GOOGLE_CLIENT_ID"     >> .env
             printf 'client_secret=%s\n'      "$GOOGLE_CLIENT_SECRET" >> .env
-            echo "✅ .env written"
+            printf 'REDIS_HOST=localhost\n'                           >> .env
+            echo "✅ .env written (including REDIS_HOST)"
 
             # ── c) NUKE all old JARs — no rollback to ancient versions ──
             echo ""

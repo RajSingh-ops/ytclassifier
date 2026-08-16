@@ -1,4 +1,3 @@
-# Local development: run `docker compose up -d` to start Redis
 services:
   redis:
     image: redis:7-alpine
